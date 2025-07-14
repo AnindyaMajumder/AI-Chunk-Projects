@@ -22,7 +22,6 @@ def load_pdfs(pdf_dir):
             ))
             doc.close()
     
-    print(len(documents))
     return documents
 
 def load_training_phrases(csv_path):
@@ -39,6 +38,5 @@ def load_training_phrases(csv_path):
                         page_content=content,
                         metadata={"source": filename, "type": "training_phrase", "row": index}
                     ))
-    print(len(documents))
     return documents
     

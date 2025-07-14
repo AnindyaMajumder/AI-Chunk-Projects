@@ -1,95 +1,63 @@
 import os
 from dotenv import load_dotenv
-from langchain_community.chat_models import ChatOpenAI
-# from langchain.chat_models import ChatOpenAI
-from langchain.chains import ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory
-
+from openai import OpenAI
 from utils.loaders import load_pdfs, load_training_phrases
-from utils.embedder import build_or_load_vectorstore, chunk_docs
+from utils.embedder import build_or_load_vectorstore
 from utils.prompts import get_benji_prompt
 
 load_dotenv()
+openai_api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=openai_api_key)
 
-def initialize_benji_chain():
+# Global system prompt
+SYSTEM_PROMPT = (
+    "You are Benji, a calm and strategic assistant trained to guide users through insurance claims like a chess game. "
+    "Your goal is to help them get paid, not to get angry."
+)
+
+# Shared history starter
+initial_history = [
+    {"role": "system", "content": SYSTEM_PROMPT}
+]
+
+# Vectorstore init
+pdf_docs = load_pdfs("data/")
+training_docs = load_training_phrases("data/")
+document_chunks = pdf_docs + training_docs
+vectorstore = build_or_load_vectorstore(document_chunks)  # Should return FAISS index with retriever
+
+
+def create_session_history():
+    return initial_history.copy()
+
+
+def retrieve_context(question: str, top_k: int = 4):
     """
-    Initialize and return the Benji AI chain for Django backend integration.
-    
-    Returns:
-        ConversationalRetrievalChain: Configured chain ready for use
+    Use FAISS retriever to get relevant document chunks
     """
+    docs = vectorstore.similarity_search(question, k=top_k)
+    return "\n\n".join([doc.page_content for doc in docs])
+
+
+def get_benji_response(question, chat_history):
+    import traceback
     try:
-        # Load and combine docs
-        pdf_docs = load_pdfs("data/")
-        training_docs = load_training_phrases("data/")
-        all_docs = pdf_docs + training_docs
-
-        # Build or load FAISS vectorstore
-        vectorstore = build_or_load_vectorstore(all_docs)
-
-        # Set up memory
-        memory = ConversationBufferMemory(
-            memory_key="chat_history",
-            return_messages=True
+        # Retrieve relevant knowledge
+        context = retrieve_context(question)
+        history_str = "\n".join([f"{m['role']}: {m['content']}" for m in chat_history])
+        benji_prompt = get_benji_prompt().format(context=context, chat_history=history_str, question=question)
+        messages = chat_history.copy()
+        messages.append({"role": "system", "content": benji_prompt})
+        messages.append({"role": "user", "content": question})
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=messages,
+            temperature=0.1
         )
-
-        # Create model and chain
-        llm = ChatOpenAI(temperature=0.1)
-
-        qa_chain = ConversationalRetrievalChain.from_llm(
-            llm=llm,
-            retriever=vectorstore.as_retriever(search_type="similarity", k=4),
-            memory=memory,
-            combine_docs_chain_kwargs={"prompt": get_benji_prompt()}
-        )
-        
-        return qa_chain
-        
+        reply = response.choices[0].message.content
+        messages.append({"role": "assistant", "content": reply})
+        return reply, messages
     except Exception as e:
-        print(f"Error initializing Benji chain: {str(e)}")
-        raise
-
-# Initialize the chain for immediate use
-qa_chain = initialize_benji_chain()
-
-def get_benji_response(question, session_memory=None):
-    """
-    Get a response from Benji AI for Django integration.
-    
-    Args:
-        question (str): User's question
-        session_memory (ConversationBufferMemory, optional): Session-specific memory
-    
-    Returns:
-        str: Benji's response
-    """
-    try:
-        if session_memory:
-            # Use session-specific memory for this request
-            temp_chain = ConversationalRetrievalChain.from_llm(
-                llm=ChatOpenAI(temperature=0.1),
-                retriever=qa_chain.retriever,
-                memory=session_memory,
-                combine_docs_chain_kwargs={"prompt": get_benji_prompt()}
-            )
-            response = temp_chain({"question": question})
-        else:
-            # Use global chain
-            response = qa_chain({"question": question})
-            
-        return response.get("answer", "I'm sorry, I couldn't process that request.")
-        
-    except Exception as e:
-        return f"Error: {str(e)}"
-
-def create_session_memory():
-    """
-    Create a new conversation memory for a Django session.
-    
-    Returns:
-        ConversationBufferMemory: New memory instance for session
-    """
-    return ConversationBufferMemory(
-        memory_key="chat_history",
-        return_messages=True
-    )
+        tb = traceback.format_exc()
+        error_type = type(e).__name__
+        return f"Error ({error_type}): {str(e)}\nTraceback:\n{tb}", chat_history
