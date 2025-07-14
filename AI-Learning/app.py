@@ -21,8 +21,24 @@ initial_history = [
 ]
 
 # Vectorstore init
+
+# Load PDFs
 pdf_docs = load_pdfs("data/")
-training_docs = load_training_phrases("data/")
+
+# Load CSV advice and tag with metadata
+raw_training_docs = load_training_phrases("data/")
+training_docs = []
+for doc in raw_training_docs:
+    # Access Document attributes robustly
+    advice_text = getattr(doc, 'Advice', getattr(doc, 'advice', ''))
+    category = getattr(doc, 'Category', getattr(doc, 'category', 'General'))
+    training_docs.append({
+        'page_content': advice_text,
+        'category': category,
+        'source': 'csv_advice'
+    })
+
+# Merge all document chunks
 document_chunks = pdf_docs + training_docs
 vectorstore = build_or_load_vectorstore(document_chunks)  # Should return FAISS index with retriever
 
@@ -31,22 +47,66 @@ def create_session_history():
     return initial_history.copy()
 
 
+
 def retrieve_context(question: str, top_k: int = 4):
     """
-    Use FAISS retriever to get relevant document chunks
+    Use FAISS retriever to get relevant document chunks, with robust formatting for CSV advice.
     """
-    docs = vectorstore.similarity_search(question, k=top_k)
-    return "\n\n".join([doc.page_content for doc in docs])
+    # Retrieve top 4 chunks, do not truncate
+    docs = vectorstore.similarity_search(question, k=4)
+    formatted_chunks = []
+    for doc in docs:
+        # If advice is from CSV, show category and tag
+        if hasattr(doc, 'source') and doc.source == 'csv_advice':
+            chunk = f"[Advice: {getattr(doc, 'category', 'General')}] {doc.page_content}"
+        elif isinstance(doc, dict) and doc.get('source') == 'csv_advice':
+            chunk = f"[Advice: {doc.get('category', 'General')}] {doc.get('page_content', '')}"
+        else:
+            chunk = doc.page_content
+        formatted_chunks.append(chunk)
+    return "\n\n".join(formatted_chunks)
 
 
 def get_benji_response(question, chat_history):
     import traceback
     try:
         # Retrieve relevant knowledge
-        context = retrieve_context(question)
-        history_str = "\n".join([f"{m['role']}: {m['content']}" for m in chat_history])
-        benji_prompt = get_benji_prompt().format(context=context, chat_history=history_str, question=question)
-        messages = chat_history.copy()
+        # Get all context chunks as a list
+        docs = vectorstore.similarity_search(question, k=4)
+        context_chunks = []
+        for doc in docs:
+            if hasattr(doc, 'source') and doc.source == 'csv_advice':
+                chunk = f"[Advice: {getattr(doc, 'category', 'General')}] {doc.page_content}"
+            elif isinstance(doc, dict) and doc.get('source') == 'csv_advice':
+                chunk = f"[Advice: {doc.get('category', 'General')}] {doc.get('page_content', '')}"
+            else:
+                chunk = doc.page_content
+            context_chunks.append(chunk)
+
+        def estimate_tokens(text):
+            # Rough estimate: 1 token ≈ 4 characters
+            return len(text) // 4
+
+        max_tokens = 8000  # Safe threshold for GPT-4 (adjust as needed)
+        history = chat_history.copy()
+        # Try to keep as much history and context as possible
+        while True:
+            history_str = "\n".join([f"{m['role']}: {m['content']}" for m in history])
+            context = "\n\n".join(context_chunks)
+            benji_prompt = get_benji_prompt().format(context=context, chat_history=history_str, question=question)
+            total_text = benji_prompt + question + history_str + context
+            total_tokens = estimate_tokens(total_text)
+            if total_tokens < max_tokens:
+                break
+            # First, trim history (after system prompt)
+            if len(history) > 1:
+                history.pop(1)
+            # If history is minimal, trim context chunks
+            elif len(context_chunks) > 1:
+                context_chunks.pop(0)
+            else:
+                break
+        messages = history.copy()
         messages.append({"role": "system", "content": benji_prompt})
         messages.append({"role": "user", "content": question})
         response = client.chat.completions.create(
