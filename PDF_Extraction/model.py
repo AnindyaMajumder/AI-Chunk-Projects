@@ -1,14 +1,16 @@
-from langchain_ollama import OllamaLLM
+from langchain_openai import ChatOpenAI
+import os
+from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 def model_init(claim_no: int, list_item: list[str], name: str, phone: str, email: str, policy: str, receipt: str):
-    llm = OllamaLLM(
-        model="qwen3:0.6b", 
-        temperature=0.3, 
-        num_predict=2048,
-        top_p=0.9, 
-        top_k=40
+    load_dotenv()
+    llm = ChatOpenAI(
+        model="gpt-4o",
+        temperature=0.3,
+        max_tokens=2048,
+        openai_api_key=os.getenv("OPENAI_API_KEY")
     )
 
     template = ChatPromptTemplate.from_messages([
