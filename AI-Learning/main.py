@@ -1,10 +1,18 @@
-
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-from utils.loaders import load_pdfs, load_training_phrases
-from utils.embedder import build_or_load_vectorstore
-from utils.prompts import get_benji_prompt
+
+from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+import pandas as pd
+import pymupdf
+from langchain.schema import Document
+
+import pandas as pd
+from langchain.prompts import ChatPromptTemplate
 
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -21,23 +29,102 @@ initial_history = [
     {"role": "system", "content": SYSTEM_PROMPT}
 ]
 
-# Vectorstore init
+def chunk_docs(documents):
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000, 
+        chunk_overlap=200,
+        separators=["\n\n", "\n", " ", ""]  # Adjust separators as needed
+        )
+    return splitter.split_documents(documents)
+
+def build_or_load_vectorstore(documents, index_path="index/faiss_store"):
+    embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"), model="text-embedding-3-small")
+    # embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")  
+    
+    if os.path.exists(index_path):
+        return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
+
+    chunks = chunk_docs(documents)
+    vectorstore = FAISS.from_documents(chunks, embeddings)
+    vectorstore.save_local(index_path)
+    return vectorstore
+
+def load_pdfs(pdf_dir):
+    documents = []
+    for filename in os.listdir(pdf_dir):
+        if filename.endswith(".pdf"):
+            pdf_path = os.path.join(pdf_dir, filename)
+            doc = pymupdf.open(pdf_path)
+            pages = ""
+            
+            for page in doc:
+                text = page.get_text()
+                pages += str(text)
+            
+            # Create a Document object with metadata
+            documents.append(Document(
+                page_content=pages,
+                metadata={"source": filename, "type": "pdf"}
+            ))
+            doc.close()
+    
+    return documents
+
+def load_training_phrases(csv_path):
+    documents = []
+    if os.path.isdir(csv_path):
+        for filename in os.listdir(csv_path):
+            if filename.endswith(".csv"):
+                print(f"Loading training phrases")
+                df = pd.read_csv(os.path.join(csv_path, filename), encoding="utf-8")
+                for index, row in df.iterrows():
+                    content = " ".join(str(value) for value in row.values if pd.notna(value))
+                    # Get category and advice if they exist in the CSV
+                    category = row.get('Category', row.get('category', 'General'))
+                    advice = row.get('Advice', row.get('advice', content))
+                    
+                    # Create a Document object with metadata
+                    documents.append(Document(
+                        page_content=advice if advice else content,
+                        metadata={
+                            "source": filename, 
+                            "type": "training_phrase", 
+                            "row": index,
+                            "category": category,
+                            "original_source": "csv_advice"
+                        }
+                    ))
+    return documents
+
+def get_benji_prompt():
+    return ChatPromptTemplate.from_template("""
+        You are Benji, a calm and strategic assistant helping users through insurance claims.
+        Your personality:
+        - Calm, never emotional
+        - Strategic like a chess coach
+        - Empathetic, warm, and confident
+
+        Always reinforce: "Stay calm. This is a game of chess. The goal is to get paid — not to get angry."
+
+        Include editable templates when useful. Avoid robotic responses.
+
+        Context:
+        {context}
+
+        Conversation history:
+        {chat_history}
+
+        User question:
+        {question}
+
+        Answer as Benji:
+    """)
 
 # Load PDFs
 pdf_docs = load_pdfs("data/")
 
 # Load CSV advice and tag with metadata
-raw_training_docs = load_training_phrases("data/")
-training_docs = []
-for doc in raw_training_docs:
-    # Access Document attributes robustly
-    advice_text = getattr(doc, 'Advice', getattr(doc, 'advice', ''))
-    category = getattr(doc, 'Category', getattr(doc, 'category', 'General'))
-    training_docs.append({
-        'page_content': advice_text,
-        'category': category,
-        'source': 'csv_advice'
-    })
+training_docs = load_training_phrases("data/")
 
 # Merge all document chunks
 document_chunks = pdf_docs + training_docs
@@ -57,10 +144,8 @@ def retrieve_context(question: str, top_k: int = 4):
     formatted_chunks = []
     for doc in docs:
         # If advice is from CSV, show category and tag
-        if hasattr(doc, 'source') and doc.source == 'csv_advice':
-            chunk = f"[Advice: {getattr(doc, 'category', 'General')}] {doc.page_content}"
-        elif isinstance(doc, dict) and doc.get('source') == 'csv_advice':
-            chunk = f"[Advice: {doc.get('category', 'General')}] {doc.get('page_content', '')}"
+        if hasattr(doc, 'metadata') and doc.metadata.get('original_source') == 'csv_advice':
+            chunk = f"[Advice: {doc.metadata.get('category', 'General')}] {doc.page_content}"
         else:
             chunk = doc.page_content
         formatted_chunks.append(chunk)
@@ -75,10 +160,8 @@ def get_benji_response(question, chat_history):
         docs = vectorstore.similarity_search(question, k=4)
         context_chunks = []
         for doc in docs:
-            if hasattr(doc, 'source') and doc.source == 'csv_advice':
-                chunk = f"[Advice: {getattr(doc, 'category', 'General')}] {doc.page_content}"
-            elif isinstance(doc, dict) and doc.get('source') == 'csv_advice':
-                chunk = f"[Advice: {doc.get('category', 'General')}] {doc.get('page_content', '')}"
+            if hasattr(doc, 'metadata') and doc.metadata.get('original_source') == 'csv_advice':
+                chunk = f"[Advice: {doc.metadata.get('category', 'General')}] {doc.page_content}"
             else:
                 chunk = doc.page_content
             context_chunks.append(chunk)
