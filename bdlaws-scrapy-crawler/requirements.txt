@@ -1,0 +1,19 @@
+# Core web scraping framework
+scrapy>=2.5.0
+
+# Web automation and browser control
+selenium>=4.0.0
+
+# Data processing and analysis
+pandas>=1.3.0
+
+# String matching and fuzzy search
+fuzzywuzzy>=0.18.0
+python-Levenshtein>=0.12.2
+
+# HTTP requests
+requests>=2.25.0
+
+# Additional utilities that may be needed
+lxml>=4.6.0
+cssselect>=1.1.0
