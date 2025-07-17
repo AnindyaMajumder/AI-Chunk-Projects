@@ -16,6 +16,9 @@ def extract_text_from_pdf(pdf_path):
     doc = fitz.open(pdf_path)
     return "\n".join(page.get_text("text") for page in doc)
 
+# Set the OpenAI API key for authentication
+openai.api_key = openai_api_key
+
 def chunk_text(text, chunk_size=1000, overlap=200):
     chunks = []
     start = 0
@@ -242,7 +245,7 @@ def generate_response(user_message, text_chunks, embeddings, label_embeddings, p
 # ----- MAIN DRIVER -----
 if __name__ == "__main__":
     start_time = time.time()
-    pdf_path = r"C:\Users\Anindya Majumder\Desktop\New\The_Apple_and_The_Stone (10) (1) (2).pdf"
+    pdf_path = r"C:\Users\Anindya Majumder\Documents\AI-Chunk-Projects\Mental Health Chatbot\The_Apple_and_The_Stone (10) (1) (2).pdf"
     cache_path = "pdf_embeddings.pkl"
 
     print("[1] Extracting PDF text...")
