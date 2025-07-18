@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from utils.loaders import load_pdfs, load_training_phrases
 from utils.embedder import build_or_load_vectorstore
+
+from langchain.schema import Document
 from utils.prompts import get_benji_prompt
 
 load_dotenv()
@@ -26,17 +28,22 @@ initial_history = [
 pdf_docs = load_pdfs("data/")
 
 # Load CSV advice and tag with metadata
+
 raw_training_docs = load_training_phrases("data/")
 training_docs = []
 for doc in raw_training_docs:
     # Access Document attributes robustly
     advice_text = getattr(doc, 'Advice', getattr(doc, 'advice', ''))
     category = getattr(doc, 'Category', getattr(doc, 'category', 'General'))
-    training_docs.append({
-        'page_content': advice_text,
-        'category': category,
-        'source': 'csv_advice'
-    })
+    training_docs.append(
+        Document(
+            page_content=advice_text,
+            metadata={
+                'category': category,
+                'source': 'csv_advice'
+            }
+        )
+    )
 
 # Merge all document chunks
 document_chunks = pdf_docs + training_docs
