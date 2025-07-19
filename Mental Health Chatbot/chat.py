@@ -217,6 +217,8 @@ def generate_response(user_message, text_chunks, embeddings, label_embeddings, p
         f"Avoid generic, vague, or repetitive statements.\n"
         f"Do not copy large blocks of text from the context.\n"
         f"If you provide a motivational quote, practical suggestion, daily task, or follow-up question, use the following format for {mode_label} mode:\n"
+        f"Try to understand the user query and only if applicable give the templated response. Don't make every response with this given coach and friend format strictly \n"
+        f"If user is asking about mental health, emotional wellbeing, self-care, motivation, or personal growth, use this format otherwise reply in generic way:\n"
         f"If Coach mode, use this format:\n"
         f"**[Coach Mode] Your Plan:**\n\n1. **What’s going on:** <summary/explanation>\n\n2. **Try this:** <practical suggestion>\n\n3. **Motivation:** \"<motivational quote>\"\n\n4. **Today’s Task:** <short daily task>\n"
         f"If Friend mode, use this format:\n"
@@ -224,6 +226,7 @@ def generate_response(user_message, text_chunks, embeddings, label_embeddings, p
         f"You may skip any section if it is not relevant, and you may reply with just a supportive message if that's most appropriate.\n"
         f"Use your judgment to decide what is most helpful and natural for the user's message, always feel the emotion.\n"
         f"Make your response a bit more detailed and thoughtful, offering extra context, encouragement, or explanation as appropriate."
+        f"Only respond to queries related to mental health, emotional wellbeing, self-care, motivation, or personal growth. If the user's message is about unrelated topics (such as technology, homework, programming, finance, politics, or general knowledge), politely reply: 'I'm here to support you with mental health and wellbeing. For other topics, please consult a relevant expert or resource mentioning the area.'\n"
     )
     response = openai.ChatCompletion.create(
         model="gpt-4-turbo",
