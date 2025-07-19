@@ -70,8 +70,11 @@ def load_pdfs(pdf_dir):
     
     return documents
 
-def load_training_phrases(csv_path):
+
+# Loads training phrases and returns both Document objects and a dict of advices grouped by category
+def load_training_phrases_and_advices(csv_path):
     documents = []
+    advices_by_category = {}
     if os.path.isdir(csv_path):
         for filename in os.listdir(csv_path):
             if filename.endswith(".csv"):
@@ -79,10 +82,11 @@ def load_training_phrases(csv_path):
                 df = pd.read_csv(os.path.join(csv_path, filename), encoding="utf-8")
                 for index, row in df.iterrows():
                     content = " ".join(str(value) for value in row.values if pd.notna(value))
-                    # Get category and advice if they exist in the CSV
                     category = row.get('Category', row.get('category', 'General'))
                     advice = row.get('Advice', row.get('advice', content))
-                    
+                    # Add to advice dict
+                    if pd.notna(category) and pd.notna(advice):
+                        advices_by_category.setdefault(str(category).strip(), []).append(str(advice).strip())
                     # Create a Document object with metadata
                     documents.append(Document(
                         page_content=advice if advice else content,
@@ -94,10 +98,21 @@ def load_training_phrases(csv_path):
                             "original_source": "csv_advice"
                         }
                     ))
-    return documents
+    return documents, advices_by_category
 
-def get_benji_prompt():
-    return ChatPromptTemplate.from_template("""
+
+# Format advices by category for prompt
+def format_advices_for_prompt(advices_by_category):
+    lines = ["Reference Advice (imported from CSV):"]
+    for category, advices in advices_by_category.items():
+        lines.append(f"{category}:")
+        for advice in advices:
+            lines.append(f"  - {advice}")
+    return "\n".join(lines)
+
+# Pass the formatted advice reference to the prompt
+def get_benji_prompt(csv_advice_reference):
+    return ChatPromptTemplate.from_template(f"""
         You are Benji, a calm and strategic assistant helping users through insurance claims.
         Your personality:
         - Calm, never emotional
@@ -108,26 +123,32 @@ def get_benji_prompt():
 
         Include editable templates when useful. Avoid robotic responses.
 
+        {csv_advice_reference}
+
         Context:
-        {context}
+        {{context}}
 
         Conversation history:
-        {chat_history}
+        {{chat_history}}
 
         User question:
-        {question}
+        {{question}}
 
         Answer as Benji:
     """)
 
+
 # Load PDFs
 pdf_docs = load_pdfs("data/")
 
-# Load CSV advice and tag with metadata
-training_docs = load_training_phrases("data/")
+# Load CSV advice and get advices by category (do NOT add to vectorstore)
+_, advices_by_category = load_training_phrases_and_advices("data/")
 
-# Merge all document chunks
-document_chunks = pdf_docs + training_docs
+# Prepare advice reference for prompt
+csv_advice_reference = format_advices_for_prompt(advices_by_category)
+
+# Only PDF docs are stored in the vectorstore
+document_chunks = pdf_docs
 vectorstore = build_or_load_vectorstore(document_chunks)  # Should return FAISS index with retriever
 
 
@@ -176,7 +197,7 @@ def get_benji_response(question, chat_history):
         while True:
             history_str = "\n".join([f"{m['role']}: {m['content']}" for m in history])
             context = "\n\n".join(context_chunks)
-            benji_prompt = get_benji_prompt().format(context=context, chat_history=history_str, question=question)
+            benji_prompt = get_benji_prompt(csv_advice_reference).format(context=context, chat_history=history_str, question=question)
             total_text = benji_prompt + question + history_str + context
             total_tokens = estimate_tokens(total_text)
             if total_tokens < max_tokens:

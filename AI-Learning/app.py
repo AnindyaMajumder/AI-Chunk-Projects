@@ -1,10 +1,9 @@
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-from utils.loaders import load_pdfs, load_training_phrases
-from utils.embedder import build_or_load_vectorstore
 
-from langchain.schema import Document
+from utils.loaders import load_pdfs
+from utils.embedder import build_or_load_vectorstore
 from utils.prompts import get_benji_prompt
 
 load_dotenv()
@@ -22,31 +21,41 @@ initial_history = [
     {"role": "system", "content": SYSTEM_PROMPT}
 ]
 
-# Vectorstore init
 
-# Load PDFs
+# --- CSV advice logic (import, format, but do NOT add to vectorstore) ---
+import pandas as pd
+from collections import defaultdict
+
+def load_training_phrases_and_advices(csv_path):
+    advices_by_category = defaultdict(list)
+    if os.path.isdir(csv_path):
+        for filename in os.listdir(csv_path):
+            if filename.endswith(".csv"):
+                df = pd.read_csv(os.path.join(csv_path, filename), encoding="utf-8")
+                for _, row in df.iterrows():
+                    category = row.get('Category', row.get('category', 'General'))
+                    advice = row.get('Advice', row.get('advice', ''))
+                    if pd.notna(category) and pd.notna(advice):
+                        advices_by_category[str(category).strip()].append(str(advice).strip())
+    return advices_by_category
+
+def format_advices_for_prompt(advices_by_category):
+    lines = ["Reference Advice (imported from CSV):"]
+    for category, advices in advices_by_category.items():
+        lines.append(f"{category}:")
+        for advice in advices:
+            lines.append(f"  - {advice}")
+    return "\n".join(lines)
+
+# Load PDFs (only PDFs go into vectorstore)
 pdf_docs = load_pdfs("data/")
 
-# Load CSV advice and tag with metadata
+# Load and format CSV advice for prompt only
+advices_by_category = load_training_phrases_and_advices("data/")
+csv_advice_reference = format_advices_for_prompt(advices_by_category)
 
-raw_training_docs = load_training_phrases("data/")
-training_docs = []
-for doc in raw_training_docs:
-    # Access Document attributes robustly
-    advice_text = getattr(doc, 'Advice', getattr(doc, 'advice', ''))
-    category = getattr(doc, 'Category', getattr(doc, 'category', 'General'))
-    training_docs.append(
-        Document(
-            page_content=advice_text,
-            metadata={
-                'category': category,
-                'source': 'csv_advice'
-            }
-        )
-    )
-
-# Merge all document chunks
-document_chunks = pdf_docs + training_docs
+# Only PDF docs are stored in the vectorstore
+document_chunks = pdf_docs
 vectorstore = build_or_load_vectorstore(document_chunks)  # Should return FAISS index with retriever
 
 
@@ -57,38 +66,19 @@ def create_session_history():
 
 def retrieve_context(question: str, top_k: int = 4):
     """
-    Use FAISS retriever to get relevant document chunks, with robust formatting for CSV advice.
+    Use FAISS retriever to get relevant document chunks (PDFs only).
     """
-    # Retrieve top 4 chunks, do not truncate
     docs = vectorstore.similarity_search(question, k=4)
-    formatted_chunks = []
-    for doc in docs:
-        # If advice is from CSV, show category and tag
-        if hasattr(doc, 'source') and doc.source == 'csv_advice':
-            chunk = f"[Advice: {getattr(doc, 'category', 'General')}] {doc.page_content}"
-        elif isinstance(doc, dict) and doc.get('source') == 'csv_advice':
-            chunk = f"[Advice: {doc.get('category', 'General')}] {doc.get('page_content', '')}"
-        else:
-            chunk = doc.page_content
-        formatted_chunks.append(chunk)
+    formatted_chunks = [doc.page_content for doc in docs]
     return "\n\n".join(formatted_chunks)
 
 
 def get_benji_response(question, chat_history):
     import traceback
     try:
-        # Retrieve relevant knowledge
-        # Get all context chunks as a list
+        # Retrieve relevant knowledge (PDFs only)
         docs = vectorstore.similarity_search(question, k=4)
-        context_chunks = []
-        for doc in docs:
-            if hasattr(doc, 'source') and doc.source == 'csv_advice':
-                chunk = f"[Advice: {getattr(doc, 'category', 'General')}] {doc.page_content}"
-            elif isinstance(doc, dict) and doc.get('source') == 'csv_advice':
-                chunk = f"[Advice: {doc.get('category', 'General')}] {doc.get('page_content', '')}"
-            else:
-                chunk = doc.page_content
-            context_chunks.append(chunk)
+        context_chunks = [doc.page_content for doc in docs]
 
         def estimate_tokens(text):
             # Rough estimate: 1 token ≈ 4 characters
@@ -100,7 +90,7 @@ def get_benji_response(question, chat_history):
         while True:
             history_str = "\n".join([f"{m['role']}: {m['content']}" for m in history])
             context = "\n\n".join(context_chunks)
-            benji_prompt = get_benji_prompt().format(context=context, chat_history=history_str, question=question)
+            benji_prompt = get_benji_prompt(csv_advice_reference).format(context=context, chat_history=history_str, question=question)
             total_text = benji_prompt + question + history_str + context
             total_tokens = estimate_tokens(total_text)
             if total_tokens < max_tokens:
