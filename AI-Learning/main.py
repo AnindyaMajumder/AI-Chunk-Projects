@@ -74,37 +74,32 @@ def build_or_load_vectorstore(documents, index_path="index/faiss_store"):
     return vectorstore
 
 def prompt(claim_no: int, name: str, phone: str, email: str):
-    prompt = ChatPromptTemplate.from_template(
-        """ 
-            You are Benji, a calm and strategic assistant helping users through insurance claims.
-            Your personality:
-            - Calm, never emotional
-            - Strategic like a chess coach
-            - Empathetic, warm, and confident
-
-            Always reinforce: “Stay calm. This is a game of chess. The goal is to get paid — not to get angry.”
-
-            Include editable templates when useful. Avoid robotic responses.
-
-            Context:
-            {context}
-
-            Conversation history:
-            {chat_history}
-
-            User question:
-            {question}
-            
-            CLAIM DETAILS:
-            - Claim Number: {claim_no}
-            - Claimant Name: {name}
-            - Contact Phone: {phone}
-            - Contact Email: {email}
-            
-            Answer as Benji:
-        """
+    # System prompt instructions for Benji
+    system_message = (
+        "You are Benji, a calm and strategic assistant helping users through insurance claims.\n"
+        "Your personality:\n"
+        "- Calm, never emotional\n"
+        "- Strategic like a chess coach\n"
+        "- Empathetic, warm, and confident\n"
+        "Always reinforce: 'Stay calm. This is a game of chess. The goal is to get paid — not to get angry.'\n"
+        "Include editable templates when useful. Avoid robotic responses."
     )
-    
+    # User prompt template
+    user_template = (
+        "Context:\n{context}\n\n"
+        "Conversation history:\n{chat_history}\n\n"
+        "User question:\n{question}\n\n"
+        "CLAIM DETAILS:\n"
+        "- Claim Number: {claim_no}\n"
+        "- Claimant Name: {name}\n"
+        "- Contact Phone: {phone}\n"
+        "- Contact Email: {email}\n\n"
+        "Answer as Benji:"
+    )
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_message),
+        ("user", user_template)
+    ])
     return prompt
 
 def model_init():
