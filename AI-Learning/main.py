@@ -10,29 +10,37 @@ from langchain.schema import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain_core.runnables import RunnableLambda
 import json
 
 # Load PDF documents from a directory
-def load_pdfs(pdf_dir):
+def load_pdfs(pdf_path_or_dir):
     documents = []
-    for filename in os.listdir(pdf_dir):
-        if filename.endswith(".pdf"):
-            pdf_path = os.path.join(pdf_dir, filename)
-            doc = pymupdf.open(pdf_path)
-            pages = ""
-            
-            for page in doc:
-                text = page.get_text()
-                pages += str(text)
-            
-            # Create a Document object with metadata
-            documents.append(Document(
-                page_content=pages,
-                metadata={"source": filename, "type": "pdf"}
-            ))
-            doc.close()
-    
+    if os.path.isdir(pdf_path_or_dir):
+        for filename in os.listdir(pdf_path_or_dir):
+            if filename.endswith(".pdf"):
+                pdf_path = os.path.join(pdf_path_or_dir, filename)
+                doc = pymupdf.open(pdf_path)
+                pages = ""
+                for page in doc:
+                    text = page.get_text()
+                    pages += str(text)
+                documents.append(Document(
+                    page_content=pages,
+                    metadata={"source": filename, "type": "pdf"}
+                ))
+                doc.close()
+    elif os.path.isfile(pdf_path_or_dir) and pdf_path_or_dir.endswith(".pdf"):
+        doc = pymupdf.open(pdf_path_or_dir)
+        pages = ""
+        for page in doc:
+            text = page.get_text()
+            pages += str(text)
+        documents.append(Document(
+            page_content=pages,
+            metadata={"source": os.path.basename(pdf_path_or_dir), "type": "pdf"}
+        ))
+        doc.close()
     return documents
 
 # Load training phrases from CSV files
@@ -81,8 +89,12 @@ def prompt(claim_no: int, name: str, phone: str, email: str):
         "- Calm, never emotional\n"
         "- Strategic like a chess coach\n"
         "- Empathetic, warm, and confident\n"
-        "Always reinforce: 'Stay calm. This is a game of chess. The goal is to get paid — not to get angry.'\n"
-        "Include editable templates when useful. Avoid robotic responses."
+        "Include editable templates when useful. Avoid robotic responses.\n"
+        "Give the template only when the user asks for it, otherwise provide a direct answer, try to quote.\n"
+        "You strictly only answer questions related to insurance claims or claim processes."
+        "If the user greets you (e.g., 'hi', 'hello', 'good morning', 'bye') respond politely as a normal chatbot would, but remind them you can only assist with insurance-related issues. For any non-insurance topic, say: 'Sorry, I can only help with insurance claim related questions.\n"
+        "Keep responses concise and focused on the user's claim.\n"
+        
     )
     # User prompt template
     user_template = (
@@ -113,30 +125,24 @@ def model_init():
 
     return llm
 
-def chaining(claim_no: int, name: str, phone: str, email: str, global_knowledge = "data/", local_knowledge = "upload/", global_store="index/", local_store="locals/"):
+def chaining(claim_no: int, name: str, phone: str, email: str, global_knowledge="data/", local_knowledge="upload/", local_folder_name="local_knowledge"):
     load_dotenv()
-    
-    # Load global knowledge base
+    global_store = "index"
+    local_store = os.path.join(global_store, local_folder_name)
     global_docs = load_pdfs(global_knowledge)
     global_vectorstore = build_or_load_vectorstore(global_docs, os.path.join(global_store, "faiss_store"))
-    
-    # Load local knowledge base
     local_docs = load_pdfs(local_knowledge)
     local_vectorstore = build_or_load_vectorstore(local_docs, os.path.join(local_store, "faiss_store"))
-    
-    # Initialize the model
     llm = model_init()
-    
-    # Create the prompt
     prompt_template = prompt(claim_no, name, phone, email)
-    
     def format_inputs(inputs):
-        # Retrieve relevant documents
-        global_docs = global_vectorstore.as_retriever().invoke(inputs["question"])
-        local_docs = local_vectorstore.as_retriever().invoke(inputs["question"])
-        # Combine contexts
-        combined_context = "\n\n".join([doc.page_content for doc in global_docs + local_docs])
-        # Return dict for prompt
+        local_docs = local_vectorstore.as_retriever(search_kwargs={"k": 7}).invoke(inputs["question"])
+        global_docs = global_vectorstore.as_retriever(search_kwargs={"k": 4}).invoke(inputs["question"])
+        local_context = "\n\n".join([doc.page_content for doc in local_docs])
+        global_context = "\n\n".join([doc.page_content for doc in global_docs])
+        combined_context = (
+            f"[Local knowledge: {local_folder_name}]\n" + local_context + "\n\n[Global knowledge]\n" + global_context
+        )
         return {
             "context": combined_context,
             "chat_history": inputs.get("chat_history", ""),
@@ -146,12 +152,8 @@ def chaining(claim_no: int, name: str, phone: str, email: str, global_knowledge 
             "phone": inputs["phone"],
             "email": inputs["email"]
         }
-    # Chain using LangChain's RunnableLambda and RunnablePassthrough
-    
     chain = RunnableLambda(format_inputs) | prompt_template | llm | StrOutputParser()
     return chain
-
-
 
 # Function to manage and return chat history as a list of dictionaries
 # Accepts either a file path (str) or a list of dicts directly
@@ -167,51 +169,68 @@ def get_chat_history(history_source="chat_history.json"):
     else:
         return []
 
-def main():
-    claim_no = 123456
-    name = "John Doe"
-    phone = "123-456-7890"
-    email = "johndoe@gmail.com"
-
-    chain = chaining(claim_no, name, phone, email)
-    print("Welcome to Benji Insurance Chatbot!")
-    print("Type 'exit' to end the chat.")
-    history_file = "chat_history.json"
-    chat_history_list = get_chat_history(history_file)
-
+def run_benji_chat(claim_no, name, phone, email, user_question, chat_history_list=None, local_folder_name="custom_local_knowledge", local_pdf_path_or_folder="upload/"):
+    if chat_history_list is None:
+        chat_history_list = []
     def get_history_text(history_list):
-        # Convert history list to text for prompt
         return "\n".join([
             f"User: {msg['human']}\nBenji: {msg['ai']}" for msg in history_list
         ])
+    chain = chaining(claim_no, name, phone, email, local_knowledge=local_pdf_path_or_folder, local_folder_name=local_folder_name)
+    inputs = {
+        "claim_no": claim_no,
+        "name": name,
+        "phone": phone,
+        "email": email,
+        "question": user_question,
+        "chat_history": chat_history_list
+    }
+    response = chain.invoke({
+        **inputs,
+        "chat_history": get_history_text(chat_history_list)
+    })
+    chat_history_list.append({"human": user_question, "ai": response})
+    return response, chat_history_list
 
-    while True:
-        user_input = input("You: ")
-        if user_input.strip().lower() == "exit":
-            print("Goodbye!")
-            break
-        # Build the input dict
+# Example usage for local testing only
+if __name__ == "__main__":
+    def run_benji_chat(claim_no, name, phone, email, user_question, chat_history_list=None, local_folder_name="custom_local_knowledge", local_pdf_path_or_folder="upload/"):
+        if chat_history_list is None:
+            chat_history_list = []
+        def get_history_text(history_list):
+            return "\n".join([
+                f"User: {msg['human']}\nBenji: {msg['ai']}" for msg in history_list
+            ])
+        chain = chaining(claim_no, name, phone, email, local_knowledge=local_pdf_path_or_folder, local_folder_name=local_folder_name)
         inputs = {
             "claim_no": claim_no,
             "name": name,
             "phone": phone,
             "email": email,
-            "question": user_input,
-            # For backend, send chat_history as a list of dicts
+            "question": user_question,
             "chat_history": chat_history_list
         }
         response = chain.invoke({
             **inputs,
-            # For prompt formatting, still use text
             "chat_history": get_history_text(chat_history_list)
         })
+        chat_history_list.append({"human": user_question, "ai": response})
+        return response, chat_history_list
+    claim_no = 123456
+    name = "John Doe"
+    phone = "123-456-7890"
+    email = "johndoe@gmail.com"
+    local_folder_name = "custom_local_knowledge"
+    local_pdf_path = "upload/policy.pdf"  # Change this to your specific PDF path
+    chat_history_list = []
+    print("Welcome to Benji Insurance Chatbot!")
+    print("Type 'exit' to end the chat.")
+    while True:
+        user_question = input("You: ")
+        if user_question.strip().lower() == "exit":
+            print("Goodbye!")
+            break
+        response, chat_history_list = run_benji_chat(
+            claim_no, name, phone, email, user_question, chat_history_list, local_folder_name, local_pdf_path
+        )
         print(f"Benji: {response}\n")
-        # Update chat history list
-        chat_history_list.append({"human": user_input, "ai": response})
-        
-        # If you want to persist history locally, uncomment below:
-        with open(history_file, "w", encoding="utf-8") as f:
-            json.dump(chat_history_list, f, ensure_ascii=False, indent=2)
-
-if __name__ == "__main__":
-    main()
