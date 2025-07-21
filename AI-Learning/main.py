@@ -11,7 +11,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
-
+import json
 
 # Load PDF documents from a directory
 def load_pdfs(pdf_dir):
@@ -158,11 +158,22 @@ def main():
     email = "johndoe@gmail.com"
 
     chain = chaining(claim_no, name, phone, email)
-
     print("Welcome to Benji Insurance Chatbot!")
     print("Type 'exit' to end the chat.")
-    chat_history = ""
-    
+    history_file = "chat_history.json"
+    # Load previous history if exists
+    if os.path.exists(history_file):
+        with open(history_file, "r", encoding="utf-8") as f:
+            chat_history_list = json.load(f)
+    else:
+        chat_history_list = []
+
+    def get_history_text(history_list):
+        # Convert history list to text for prompt
+        return "\n".join([
+            f"User: {msg['human']}\nBenji: {msg['ai']}" for msg in history_list
+        ])
+
     while True:
         user_input = input("You: ")
         if user_input.strip().lower() == "exit":
@@ -175,12 +186,15 @@ def main():
             "phone": phone,
             "email": email,
             "question": user_input,
-            "chat_history": chat_history
+            "chat_history": get_history_text(chat_history_list)
         }
         response = chain.invoke(inputs)
         print(f"Benji: {response}\n")
-        # Update chat history
-        chat_history += f"\nUser: {user_input}\nBenji: {response}"
+        # Update chat history list
+        chat_history_list.append({"human": user_input, "ai": response})
+        # Save to JSON file
+        with open(history_file, "w", encoding="utf-8") as f:
+            json.dump(chat_history_list, f, ensure_ascii=False, indent=2)
 
 if __name__ == "__main__":
     main()
