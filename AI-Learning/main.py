@@ -169,13 +169,32 @@ def get_chat_history(history_source="chat_history.json"):
     else:
         return []
 
+def estimate_token_count(text):
+    # Rough estimate: 1 token ≈ 4 characters (for English)
+    return len(text) // 4
+
+def trim_chat_history(history_list, max_tokens=2048):
+    trimmed = []
+    total_tokens = 0
+    # Start from the most recent messages
+    for msg in reversed(history_list):
+        msg_text = f"User: {msg['human']}\nBenji: {msg['ai']}"
+        msg_tokens = estimate_token_count(msg_text)
+        if total_tokens + msg_tokens > max_tokens:
+            break
+        trimmed.insert(0, msg)  # Insert at the beginning to maintain order
+        total_tokens += msg_tokens
+    return trimmed
+
+def get_history_text(history_list, max_tokens=2048):
+    trimmed_history = trim_chat_history(history_list, max_tokens)
+    return "\n".join([
+        f"User: {msg['human']}\nBenji: {msg['ai']}" for msg in trimmed_history
+    ])
+
 def run_benji_chat(claim_no, name, phone, email, user_question, chat_history_list=None, local_folder_name="custom_local_knowledge", local_pdf_path_or_folder="upload/"):
     if chat_history_list is None:
         chat_history_list = []
-    def get_history_text(history_list):
-        return "\n".join([
-            f"User: {msg['human']}\nBenji: {msg['ai']}" for msg in history_list
-        ])
     chain = chaining(claim_no, name, phone, email, local_knowledge=local_pdf_path_or_folder, local_folder_name=local_folder_name)
     inputs = {
         "claim_no": claim_no,
@@ -187,7 +206,7 @@ def run_benji_chat(claim_no, name, phone, email, user_question, chat_history_lis
     }
     response = chain.invoke({
         **inputs,
-        "chat_history": get_history_text(chat_history_list)
+        "chat_history": get_history_text(chat_history_list, max_tokens=2048)
     })
     chat_history_list.append({"human": user_question, "ai": response})
     return response, chat_history_list
@@ -216,11 +235,13 @@ if __name__ == "__main__":
         })
         chat_history_list.append({"human": user_question, "ai": response})
         return response, chat_history_list
+    
+    # Example interaction
     claim_no = 123456
     name = "John Doe"
     phone = "123-456-7890"
     email = "johndoe@gmail.com"
-    local_folder_name = "custom_local_knowledge"
+    local_folder_name = "local_knowledge"
     local_pdf_path = "upload/policy.pdf"  # Change this to your specific PDF path
     chat_history_list = []
     print("Welcome to Benji Insurance Chatbot!")
