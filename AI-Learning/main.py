@@ -151,6 +151,22 @@ def chaining(claim_no: int, name: str, phone: str, email: str, global_knowledge 
     chain = RunnableLambda(format_inputs) | prompt_template | llm | StrOutputParser()
     return chain
 
+
+
+# Function to manage and return chat history as a list of dictionaries
+# Accepts either a file path (str) or a list of dicts directly
+def get_chat_history(history_source="chat_history.json"):
+    if isinstance(history_source, list):
+        return history_source
+    elif isinstance(history_source, str):
+        if os.path.exists(history_source):
+            with open(history_source, "r", encoding="utf-8") as f:
+                return json.load(f)
+        else:
+            return []
+    else:
+        return []
+
 def main():
     claim_no = 123456
     name = "John Doe"
@@ -161,12 +177,7 @@ def main():
     print("Welcome to Benji Insurance Chatbot!")
     print("Type 'exit' to end the chat.")
     history_file = "chat_history.json"
-    # Load previous history if exists
-    if os.path.exists(history_file):
-        with open(history_file, "r", encoding="utf-8") as f:
-            chat_history_list = json.load(f)
-    else:
-        chat_history_list = []
+    chat_history_list = get_chat_history(history_file)
 
     def get_history_text(history_list):
         # Convert history list to text for prompt
@@ -186,13 +197,19 @@ def main():
             "phone": phone,
             "email": email,
             "question": user_input,
-            "chat_history": get_history_text(chat_history_list)
+            # For backend, send chat_history as a list of dicts
+            "chat_history": chat_history_list
         }
-        response = chain.invoke(inputs)
+        response = chain.invoke({
+            **inputs,
+            # For prompt formatting, still use text
+            "chat_history": get_history_text(chat_history_list)
+        })
         print(f"Benji: {response}\n")
         # Update chat history list
         chat_history_list.append({"human": user_input, "ai": response})
-        # Save to JSON file
+        
+        # If you want to persist history locally, uncomment below:
         with open(history_file, "w", encoding="utf-8") as f:
             json.dump(chat_history_list, f, ensure_ascii=False, indent=2)
 
