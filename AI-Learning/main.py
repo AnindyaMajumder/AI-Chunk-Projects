@@ -10,6 +10,7 @@ from langchain.schema import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 
 
 # Load PDF documents from a directory
@@ -138,10 +139,9 @@ def chaining(claim_no: int, name: str, phone: str, email: str, global_knowledge 
         # Retrieve relevant documents
         global_docs = global_vectorstore.as_retriever().invoke(inputs["question"])
         local_docs = local_vectorstore.as_retriever().invoke(inputs["question"])
-        
         # Combine contexts
         combined_context = "\n\n".join([doc.page_content for doc in global_docs + local_docs])
-        
+        # Return dict for prompt
         return {
             "context": combined_context,
             "chat_history": inputs.get("chat_history", ""),
@@ -151,14 +151,9 @@ def chaining(claim_no: int, name: str, phone: str, email: str, global_knowledge 
             "phone": inputs["phone"],
             "email": inputs["email"]
         }
+    # Chain using LangChain's RunnableLambda and RunnablePassthrough
     
-    chain = (
-        format_inputs
-        | prompt_template
-        | llm
-        | StrOutputParser()
-    )
-    
+    chain = RunnableLambda(format_inputs) | prompt_template | llm | StrOutputParser()
     return chain
 
 def main():
@@ -166,18 +161,31 @@ def main():
     name = "John Doe"
     phone = "123-456-7890"
     email = "johndoe@gmail.com"
-    
+
     chain = chaining(claim_no, name, phone, email)
-    result = chain.invoke({
-        "claim_no": claim_no,
-        "name": name,
-        "phone": phone,
-        "email": email,
-        "question": "This is a sample context for the claim.",
-        "chat_history": "Previous conversation history goes here."
-    })
+
+    print("Welcome to Benji Insurance Chatbot!")
+    print("Type 'exit' to end the chat.")
+    chat_history = ""
     
-    print(result)
+    while True:
+        user_input = input("You: ")
+        if user_input.strip().lower() == "exit":
+            print("Goodbye!")
+            break
+        # Build the input dict
+        inputs = {
+            "claim_no": claim_no,
+            "name": name,
+            "phone": phone,
+            "email": email,
+            "question": user_input,
+            "chat_history": chat_history
+        }
+        response = chain.invoke(inputs)
+        print(f"Benji: {response}\n")
+        # Update chat history
+        chat_history += f"\nUser: {user_input}\nBenji: {response}"
 
 if __name__ == "__main__":
     main()
