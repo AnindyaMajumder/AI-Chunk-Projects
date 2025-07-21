@@ -49,7 +49,7 @@ def load_training_phrases(csv_path):
     if os.path.isdir(csv_path):
         for filename in os.listdir(csv_path):
             if filename.endswith(".csv"):
-                print(f"Loading training phrases")
+                # print(f"Loading training phrases")
                 df = pd.read_csv(os.path.join(csv_path, filename), encoding="utf-8")
                 for index, row in df.iterrows():
                     content = " ".join(str(value) for value in row.values if pd.notna(value))
@@ -82,6 +82,10 @@ def build_or_load_vectorstore(documents, index_path="index/faiss_store"):
     return vectorstore
 
 def prompt(claim_no: int, name: str, phone: str, email: str):
+    # Load advice from Training Phrases.csv
+    advice_docs = load_training_phrases("data/")
+    advice_text = "\n".join([f"- {doc.page_content}" for doc in advice_docs])
+
     # System prompt instructions for Benji
     system_message = (
         "You are Benji, a calm and strategic assistant helping users through insurance claims.\n"
@@ -90,11 +94,12 @@ def prompt(claim_no: int, name: str, phone: str, email: str):
         "- Strategic like a chess coach\n"
         "- Empathetic, warm, and confident\n"
         "Include editable templates when useful. Avoid robotic responses.\n"
-        "Give the template only when the user asks for it, otherwise provide a direct answer, try to quote.\n"
+        "Give the template only when the user asks for it, otherwise provide a direct answer.\n"
         "You strictly only answer questions related to insurance claims or claim processes."
         "If the user greets you (e.g., 'hi', 'hello', 'good morning', 'bye') respond politely as a normal chatbot would, but remind them you can only assist with insurance-related issues. For any non-insurance topic, say: 'Sorry, I can only help with insurance claim related questions.\n"
         "Keep responses concise and focused on the user's claim.\n"
-        
+        "If the user asks for summary of the conversation, provide a summary of the chat history.\n"
+        "\nBest practices and advice for insurance claims:\n" + advice_text + "\n"
     )
     # User prompt template
     user_template = (
