@@ -54,15 +54,13 @@ pdf_docs = load_pdfs("data/")
 advices_by_category = load_training_phrases_and_advices("data/")
 csv_advice_reference = format_advices_for_prompt(advices_by_category)
 
-# Only PDF docs are stored in the vectorstore
+# Only PDF docs are stored in the global vectorstore
 document_chunks = pdf_docs
-vectorstore = build_or_load_vectorstore(document_chunks)  # Should return FAISS index with retriever
+global_vectorstore = build_or_load_vectorstore(document_chunks)  # Should return FAISS index with retriever
 
 
 def create_session_history():
     return initial_history.copy()
-
-
 
 def retrieve_context(question: str, top_k: int = 4):
     """
@@ -73,48 +71,119 @@ def retrieve_context(question: str, top_k: int = 4):
     return "\n\n".join(formatted_chunks)
 
 
-def get_benji_response(question, chat_history):
+
+# --- Benji Chat Logic (matching main.py) ---
+def estimate_token_count(text):
+    # Rough estimate: 1 token ≈ 4 characters (for English)
+    return len(text) // 4
+
+def trim_chat_history(history_list, max_tokens=2048):
+    trimmed = []
+    total_tokens = 0
+    # Start from the most recent messages
+    for msg in reversed(history_list):
+        msg_text = f"User: {msg['human']}\nBenji: {msg['ai']}" if 'human' in msg and 'ai' in msg else f"{msg['role']}: {msg['content']}"
+        msg_tokens = estimate_token_count(msg_text)
+        if total_tokens + msg_tokens > max_tokens:
+            break
+        trimmed.insert(0, msg)  # Insert at the beginning to maintain order
+        total_tokens += msg_tokens
+    return trimmed
+
+def get_history_text(history_list, max_tokens=2048):
+    trimmed_history = trim_chat_history(history_list, max_tokens)
+    return "\n".join([
+        f"User: {msg['human']}\nBenji: {msg['ai']}" if 'human' in msg and 'ai' in msg else f"{msg['role']}: {msg['content']}" for msg in trimmed_history
+    ])
+
+def get_benji_response(claim_no, name, phone, email, user_question, chat_history_list=None, local_folder_name="local_knowledge", local_pdf_path_or_folder="upload/"):
     import traceback
     try:
-        # Retrieve relevant knowledge (PDFs only)
-        docs = vectorstore.similarity_search(question, k=4)
-        context_chunks = [doc.page_content for doc in docs]
+        if chat_history_list is None:
+            chat_history_list = []
+        # --- Local knowledge support ---
+        # Build local vectorstore if local_pdf_path_or_folder exists and has PDFs
+        local_store_path = os.path.join("index", local_folder_name, "faiss_store")
+        local_docs = load_pdfs(local_pdf_path_or_folder)
+        if local_docs:
+            local_vectorstore = build_or_load_vectorstore(local_docs, local_store_path)
+            local_context_docs = local_vectorstore.similarity_search(user_question, k=7)
+            local_context = "\n\n".join([doc.page_content for doc in local_context_docs])
+        else:
+            local_context = ""
+        # --- Global knowledge ---
+        global_context_docs = global_vectorstore.similarity_search(user_question, k=4)
+        global_context = "\n\n".join([doc.page_content for doc in global_context_docs])
+        # --- Combine context ---
+        combined_context = f"[Local knowledge: {local_folder_name}]\n" + local_context + "\n\n[Global knowledge]\n" + global_context
 
-        def estimate_tokens(text):
-            # Rough estimate: 1 token ≈ 4 characters
-            return len(text) // 4
+        # Build advice text from CSV
+        advice_text = csv_advice_reference
 
-        max_tokens = 8000  # Safe threshold for GPT-4 (adjust as needed)
-        history = chat_history.copy()
-        # Try to keep as much history and context as possible
-        while True:
-            history_str = "\n".join([f"{m['role']}: {m['content']}" for m in history])
-            context = "\n\n".join(context_chunks)
-            benji_prompt = get_benji_prompt(csv_advice_reference).format(context=context, chat_history=history_str, question=question)
-            total_text = benji_prompt + question + history_str + context
-            total_tokens = estimate_tokens(total_text)
-            if total_tokens < max_tokens:
-                break
-            # First, trim history (after system prompt)
-            if len(history) > 1:
-                history.pop(1)
-            # If history is minimal, trim context chunks
-            elif len(context_chunks) > 1:
-                context_chunks.pop(0)
-            else:
-                break
-        messages = history.copy()
-        messages.append({"role": "system", "content": benji_prompt})
-        messages.append({"role": "user", "content": question})
+        # System prompt instructions for Benji (from main.py)
+        system_message = (
+            "You are Benji, a calm and strategic assistant helping users through insurance claims.\n"
+            "Your personality:\n"
+            "- Calm, never emotional\n"
+            "- Strategic like a chess coach\n"
+            "- Empathetic, warm, and confident\n"
+            "Include editable templates when useful. Avoid robotic responses.\n"
+            "Give the template only when the user asks for it, otherwise provide a direct answer.\n"
+            "You strictly only answer questions related to insurance claims or claim processes."
+            "If the user greets you (e.g., 'hi', 'hello', 'good morning', 'bye') respond politely as a normal chatbot would, but remind them you can only assist with insurance-related issues. For any non-insurance topic, say: 'Sorry, I can only help with insurance claim related questions.\n"
+            "Keep responses concise and focused on the user's claim. If user asked for his informations, provide it precisely. If any information is missing, say that information is missing\n"
+            "If the user asks for summary of the conversation, provide a summary of the chat history.\n"
+            "\nBest practices and advice for insurance claims:\n" + advice_text + "\n"
+        )
+        # User prompt template
+        user_template = (
+            "Context:\n{context}\n\n"
+            "Conversation history:\n{chat_history}\n\n"
+            "User question:\n{question}\n\n"
+            "CLAIM DETAILS:\n"
+            "- Claim Number: {claim_no}\n"
+            "- Claimant Name: {name}\n"
+            "- Contact Phone: {phone}\n"
+            "- Contact Email: {email}\n\n"
+            "Answer as Benji:"
+        )
+
+        # Prepare chat history text
+        history_text = get_history_text(chat_history_list, max_tokens=2048)
+
+        # Compose the prompt
+        prompt = system_message + user_template.format(
+            context=combined_context,
+            chat_history=history_text,
+            question=user_question,
+            claim_no=claim_no,
+            name=name,
+            phone=phone,
+            email=email
+        )
+
+        # Call OpenAI
         response = client.chat.completions.create(
-            model="gpt-4",
-            messages=messages,
-            temperature=0.1
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": user_template.format(
+                    context=combined_context,
+                    chat_history=history_text,
+                    question=user_question,
+                    claim_no=claim_no,
+                    name=name,
+                    phone=phone,
+                    email=email
+                )}
+            ],
+            temperature=0.3,
+            max_tokens=2048
         )
         reply = response.choices[0].message.content
-        messages.append({"role": "assistant", "content": reply})
-        return reply, messages
+        chat_history_list.append({"human": user_question, "ai": reply})
+        return reply, chat_history_list
     except Exception as e:
         tb = traceback.format_exc()
         error_type = type(e).__name__
-        return f"Error ({error_type}): {str(e)}\nTraceback:\n{tb}", chat_history
+        return f"Error ({error_type}): {str(e)}\nTraceback:\n{tb}", chat_history_list
