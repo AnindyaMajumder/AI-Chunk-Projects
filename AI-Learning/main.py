@@ -1,54 +1,18 @@
-import os
 from dotenv import load_dotenv
-from openai import OpenAI
-
+load_dotenv()
 from langchain_openai import OpenAIEmbeddings
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-
 import pandas as pd
+import os
 import pymupdf
 from langchain.schema import Document
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import StrOutputParser
 
-import pandas as pd
-from langchain.prompts import ChatPromptTemplate
 
-load_dotenv()
-openai_api_key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=openai_api_key)
-
-# Global system prompt
-SYSTEM_PROMPT = (
-    "You are Benji, a calm and strategic assistant trained to guide users through insurance claims like a chess game. "
-    "Your goal is to help them get paid, not to get angry."
-)
-
-# Shared history starter
-initial_history = [
-    {"role": "system", "content": SYSTEM_PROMPT}
-]
-
-def chunk_docs(documents):
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000, 
-        chunk_overlap=200,
-        separators=["\n\n", "\n", " ", ""]  # Adjust separators as needed
-        )
-    return splitter.split_documents(documents)
-
-def build_or_load_vectorstore(documents, index_path="index/faiss_store"):
-    embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"), model="text-embedding-3-small")
-    # embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")  
-    
-    if os.path.exists(index_path):
-        return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
-
-    chunks = chunk_docs(documents)
-    vectorstore = FAISS.from_documents(chunks, embeddings)
-    vectorstore.save_local(index_path)
-    return vectorstore
-
+# Load PDF documents from a directory
 def load_pdfs(pdf_dir):
     documents = []
     for filename in os.listdir(pdf_dir):
@@ -70,11 +34,9 @@ def load_pdfs(pdf_dir):
     
     return documents
 
-
-# Loads training phrases and returns both Document objects and a dict of advices grouped by category
-def load_training_phrases_and_advices(csv_path):
+# Load training phrases from CSV files
+def load_training_phrases(csv_path):
     documents = []
-    advices_by_category = {}
     if os.path.isdir(csv_path):
         for filename in os.listdir(csv_path):
             if filename.endswith(".csv"):
@@ -82,160 +44,140 @@ def load_training_phrases_and_advices(csv_path):
                 df = pd.read_csv(os.path.join(csv_path, filename), encoding="utf-8")
                 for index, row in df.iterrows():
                     content = " ".join(str(value) for value in row.values if pd.notna(value))
-                    category = row.get('Category', row.get('category', 'General'))
-                    advice = row.get('Advice', row.get('advice', content))
-                    # Add to advice dict
-                    if pd.notna(category) and pd.notna(advice):
-                        advices_by_category.setdefault(str(category).strip(), []).append(str(advice).strip())
                     # Create a Document object with metadata
                     documents.append(Document(
-                        page_content=advice if advice else content,
-                        metadata={
-                            "source": filename, 
-                            "type": "training_phrase", 
-                            "row": index,
-                            "category": category,
-                            "original_source": "csv_advice"
-                        }
+                        page_content=content,
+                        metadata={"source": filename, "type": "training_phrase", "row": index}
                     ))
-    return documents, advices_by_category
+    return documents
 
-
-# Format advices by category for prompt
-def format_advices_for_prompt(advices_by_category):
-    lines = ["Reference Advice (imported from CSV):"]
-    for category, advices in advices_by_category.items():
-        lines.append(f"{category}:")
-        for advice in advices:
-            lines.append(f"  - {advice}")
-    return "\n".join(lines)
-
-# Pass the formatted advice reference to the prompt
-def get_benji_prompt(csv_advice_reference):
-    return ChatPromptTemplate.from_template(f"""
-        You are Benji, a calm and strategic assistant helping users through insurance claims.
-        Your personality:
-        - Calm, never emotional
-        - Strategic like a chess coach
-        - Empathetic, warm, and confident
-
-        Always reinforce: "Stay calm. This is a game of chess. The goal is to get paid — not to get angry."
-
-        Include editable templates when useful. Avoid robotic responses.
-
-        {csv_advice_reference}
-
-        Context:
-        {{context}}
-
-        Conversation history:
-        {{chat_history}}
-
-        User question:
-        {{question}}
-
-        Answer as Benji:
-    """)
-
-
-# Load PDFs
-pdf_docs = load_pdfs("data/")
-
-# Load CSV advice and get advices by category (do NOT add to vectorstore)
-_, advices_by_category = load_training_phrases_and_advices("data/")
-
-# Prepare advice reference for prompt
-csv_advice_reference = format_advices_for_prompt(advices_by_category)
-
-# Only PDF docs are stored in the vectorstore
-document_chunks = pdf_docs
-vectorstore = build_or_load_vectorstore(document_chunks)  # Should return FAISS index with retriever
-
-
-def create_session_history():
-    return initial_history.copy()
-
-
-def retrieve_context(question: str, top_k: int = 4):
-    """
-    Use FAISS retriever to get relevant document chunks, with robust formatting for CSV advice.
-    """
-    # Retrieve top 4 chunks, do not truncate
-    docs = vectorstore.similarity_search(question, k=4)
-    formatted_chunks = []
-    for doc in docs:
-        # If advice is from CSV, show category and tag
-        if hasattr(doc, 'metadata') and doc.metadata.get('original_source') == 'csv_advice':
-            chunk = f"[Advice: {doc.metadata.get('category', 'General')}] {doc.page_content}"
-        else:
-            chunk = doc.page_content
-        formatted_chunks.append(chunk)
-    return "\n\n".join(formatted_chunks)
-
-
-def get_benji_response(question, chat_history):
-    import traceback
-    try:
-        # Retrieve relevant knowledge
-        # Get all context chunks as a list
-        docs = vectorstore.similarity_search(question, k=4)
-        context_chunks = []
-        for doc in docs:
-            if hasattr(doc, 'metadata') and doc.metadata.get('original_source') == 'csv_advice':
-                chunk = f"[Advice: {doc.metadata.get('category', 'General')}] {doc.page_content}"
-            else:
-                chunk = doc.page_content
-            context_chunks.append(chunk)
-
-        def estimate_tokens(text):
-            # Rough estimate: 1 token ≈ 4 characters
-            return len(text) // 4
-
-        max_tokens = 8000  # Safe threshold for GPT-4 (adjust as needed)
-        history = chat_history.copy()
-        # Try to keep as much history and context as possible
-        while True:
-            history_str = "\n".join([f"{m['role']}: {m['content']}" for m in history])
-            context = "\n\n".join(context_chunks)
-            benji_prompt = get_benji_prompt(csv_advice_reference).format(context=context, chat_history=history_str, question=question)
-            total_text = benji_prompt + question + history_str + context
-            total_tokens = estimate_tokens(total_text)
-            if total_tokens < max_tokens:
-                break
-            # First, trim history (after system prompt)
-            if len(history) > 1:
-                history.pop(1)
-            # If history is minimal, trim context chunks
-            elif len(context_chunks) > 1:
-                context_chunks.pop(0)
-            else:
-                break
-        messages = history.copy()
-        messages.append({"role": "system", "content": benji_prompt})
-        messages.append({"role": "user", "content": question})
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=messages,
-            temperature=0.1
+# Embedder utility functions
+def chunk_docs(documents):
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000, 
+        chunk_overlap=200,
+        separators=["\n\n", "\n", " ", ""]  # Adjust separators as needed
         )
-        reply = response.choices[0].message.content
-        messages.append({"role": "assistant", "content": reply})
-        return reply, messages
-    except Exception as e:
-        tb = traceback.format_exc()
-        error_type = type(e).__name__
-        return f"Error ({error_type}): {str(e)}\nTraceback:\n{tb}", chat_history
+    return splitter.split_documents(documents)
+
+def build_or_load_vectorstore(documents, index_path="index/faiss_store"):
+    embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"), model="text-embedding-3-small")
+    # embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")  
+    
+    if os.path.exists(index_path):
+        return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
+
+    chunks = chunk_docs(documents)
+    vectorstore = FAISS.from_documents(chunks, embeddings)
+    vectorstore.save_local(index_path)
+    return vectorstore
+
+def prompt(claim_no: int, name: str, phone: str, email: str):
+    prompt = ChatPromptTemplate.from_template(
+        """ 
+            You are Benji, a calm and strategic assistant helping users through insurance claims.
+            Your personality:
+            - Calm, never emotional
+            - Strategic like a chess coach
+            - Empathetic, warm, and confident
+
+            Always reinforce: “Stay calm. This is a game of chess. The goal is to get paid — not to get angry.”
+
+            Include editable templates when useful. Avoid robotic responses.
+
+            Context:
+            {context}
+
+            Conversation history:
+            {chat_history}
+
+            User question:
+            {question}
+            
+            CLAIM DETAILS:
+            - Claim Number: {claim_no}
+            - Claimant Name: {name}
+            - Contact Phone: {phone}
+            - Contact Email: {email}
+            
+            Answer as Benji:
+        """
+    )
+    
+    return prompt
+
+def model_init():
+    load_dotenv()
+    llm = ChatOpenAI(
+        model="gpt-4o",
+        temperature=0.3,
+        max_tokens=2048,
+        openai_api_key=os.getenv("OPENAI_API_KEY")
+    )
+
+    return llm
+
+def chaining(claim_no: int, name: str, phone: str, email: str, global_knowledge = "data/", local_knowledge = "upload/", global_store="index/", local_store="locals/"):
+    load_dotenv()
+    
+    # Load global knowledge base
+    global_docs = load_pdfs(global_knowledge)
+    global_vectorstore = build_or_load_vectorstore(global_docs, os.path.join(global_store, "faiss_store"))
+    
+    # Load local knowledge base
+    local_docs = load_pdfs(local_knowledge)
+    local_vectorstore = build_or_load_vectorstore(local_docs, os.path.join(local_store, "faiss_store"))
+    
+    # Initialize the model
+    llm = model_init()
+    
+    # Create the prompt
+    prompt_template = prompt(claim_no, name, phone, email)
+    
+    def format_inputs(inputs):
+        # Retrieve relevant documents
+        global_docs = global_vectorstore.as_retriever().invoke(inputs["question"])
+        local_docs = local_vectorstore.as_retriever().invoke(inputs["question"])
+        
+        # Combine contexts
+        combined_context = "\n\n".join([doc.page_content for doc in global_docs + local_docs])
+        
+        return {
+            "context": combined_context,
+            "chat_history": inputs.get("chat_history", ""),
+            "question": inputs["question"],
+            "claim_no": inputs["claim_no"],
+            "name": inputs["name"],
+            "phone": inputs["phone"],
+            "email": inputs["email"]
+        }
+    
+    chain = (
+        format_inputs
+        | prompt_template
+        | llm
+        | StrOutputParser()
+    )
+    
+    return chain
+
+def main():
+    claim_no = 123456
+    name = "John Doe"
+    phone = "123-456-7890"
+    email = "johndoe@gmail.com"
+    
+    chain = chaining(claim_no, name, phone, email)
+    result = chain.invoke({
+        "claim_no": claim_no,
+        "name": name,
+        "phone": phone,
+        "email": email,
+        "question": "This is a sample context for the claim.",
+        "chat_history": "Previous conversation history goes here."
+    })
+    
+    print(result)
 
 if __name__ == "__main__":
-    print("Welcome to Benji! Type 'exit' to quit.")
-    chat_history = create_session_history()
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() in ["exit", "quit"]:
-            print("Goodbye!")
-            break
-        reply, chat_history = get_benji_response(user_input, chat_history)
-        if reply.startswith("Error:"):
-            print(f"Benji: {reply} (Check your API key, vectorstore, or data files)")
-        else:
-            print(f"Benji: {reply}\n")
+    main()
