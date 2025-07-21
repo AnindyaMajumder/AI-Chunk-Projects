@@ -97,7 +97,7 @@ def prompt(claim_no: int, name: str, phone: str, email: str):
         "Give the template only when the user asks for it, otherwise provide a direct answer.\n"
         "You strictly only answer questions related to insurance claims or claim processes."
         "If the user greets you (e.g., 'hi', 'hello', 'good morning', 'bye') respond politely as a normal chatbot would, but remind them you can only assist with insurance-related issues. For any non-insurance topic, say: 'Sorry, I can only help with insurance claim related questions.\n"
-        "Keep responses concise and focused on the user's claim.\n"
+        "Keep responses concise and focused on the user's claim. If user asked for his informations, provide it precisely\n"
         "If the user asks for summary of the conversation, provide a summary of the chat history.\n"
         "\nBest practices and advice for insurance claims:\n" + advice_text + "\n"
     )
@@ -245,7 +245,7 @@ if __name__ == "__main__":
     claim_no = 123456
     name = "John Doe"
     phone = "123-456-7890"
-    email = "johndoe@gmail.com"
+    email = ""
     local_folder_name = "local_knowledge"
     local_pdf_path = "upload/policy.pdf"  # Change this to your specific PDF path
     chat_history_list = []
