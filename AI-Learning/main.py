@@ -81,7 +81,7 @@ def build_or_load_vectorstore(documents, index_path="index/faiss_store"):
     vectorstore.save_local(index_path)
     return vectorstore
 
-def prompt(insurance_company: str, policy_number: str, policy_report_number: str, adjuster_name: str, adjuster_phone: str, claim_number: str, adjuster_email: str):
+def prompt(insurance_company: str, policy_number: str, policy_report_number: str, adjuster_name: str, adjuster_phone: str, claim_number: str, adjuster_email: str, user_full_name: str, email_address: str, user_phone_no: str):
     # Load advice from Training Phrases.csv
     advice_docs = load_training_phrases("data/")
     advice_text = "\n".join([f"- {doc.page_content}" for doc in advice_docs])
@@ -94,11 +94,20 @@ def prompt(insurance_company: str, policy_number: str, policy_report_number: str
         "- Strategic like a chess coach\n"
         "- Empathetic, warm, and confident\n"
         "Include editable templates when useful. Avoid robotic responses.\n"
-        "Give the template only when the user asks for it, otherwise provide a direct answer. Include the user's claim details in your template responses.\n"
+        "When the user asks for a template, ALWAYS include ALL of their claim details in the template:\n"
+        "- Insurance Company Name\n"
+        "- Policy Number\n"
+        "- Policy Report Number\n"
+        "- Adjuster Name\n"
+        "- Adjuster Phone Number\n"
+        "- Claim Number\n"
+        "- Adjuster Email\n"
+        "Make sure every single piece of claim information is included in templates when requested.\n"
         "You strictly only answer questions related to insurance claims or claim processes."
         "If the user greets you (e.g., 'hi', 'hello', 'good morning', 'bye') respond politely as a normal chatbot would, but remind them you can only assist with insurance-related issues. For any non-insurance topic, say: 'Sorry, I can only help with insurance claim related questions.\n"
         "Keep responses concise and focused on the user's claim. If user asked for his informations, provide it precisely. If any information is missing, say that information is missing\n"
         "If the user asks for summary of the conversation, provide a summary of the chat history.\n"
+        "always remember the values of the given data of the user and when the user asks for his information, provide it precisely and accurately with the response .\n"
         "\nBest practices and advice for insurance claims:\n" + advice_text + "\n"
     )
     # User prompt template
@@ -113,7 +122,10 @@ def prompt(insurance_company: str, policy_number: str, policy_report_number: str
         "- Adjuster Name: {adjuster_name}\n"
         "- Adjuster Phone Number: {adjuster_phone}\n"
         "- Claim Number: {claim_number}\n"
-        "- Adjuster Email: {adjuster_email}\n\n"
+        "- Adjuster Email: {adjuster_email}\n"
+        "- User Full Name: {user_full_name}\n"
+        "- Email Address: {email_address}\n"
+        "- User Phone Number: {user_phone_no}\n\n"
         "Answer as Benji:"
     )
     prompt = ChatPromptTemplate.from_messages([
@@ -133,7 +145,7 @@ def model_init():
 
     return llm
 
-def chaining(insurance_company: str, policy_number: str, policy_report_number: str, adjuster_name: str, adjuster_phone: str, claim_number: str, adjuster_email: str, global_knowledge="data/", local_knowledge="upload/", local_folder_name="local_knowledge"):
+def chaining(insurance_company: str, policy_number: str, policy_report_number: str, adjuster_name: str, adjuster_phone: str, claim_number: str, adjuster_email: str, user_full_name: str, email_address: str, user_phone_no: str, global_knowledge="data/", local_knowledge="upload/", local_folder_name="local_knowledge"):
     load_dotenv()
     global_store = "index"
     local_store = os.path.join(global_store, local_folder_name)
@@ -142,7 +154,7 @@ def chaining(insurance_company: str, policy_number: str, policy_report_number: s
     local_docs = load_pdfs(local_knowledge)
     local_vectorstore = build_or_load_vectorstore(local_docs, os.path.join(local_store, "faiss_store"))
     llm = model_init()
-    prompt_template = prompt(insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email)
+    prompt_template = prompt(insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, user_full_name, email_address, user_phone_no)
     def format_inputs(inputs):
         local_docs = local_vectorstore.as_retriever(search_kwargs={"k": 7}).invoke(inputs["question"])
         global_docs = global_vectorstore.as_retriever(search_kwargs={"k": 4}).invoke(inputs["question"])
@@ -161,7 +173,10 @@ def chaining(insurance_company: str, policy_number: str, policy_report_number: s
             "adjuster_name": inputs["adjuster_name"],
             "adjuster_phone": inputs["adjuster_phone"],
             "claim_number": inputs["claim_number"],
-            "adjuster_email": inputs["adjuster_email"]
+            "adjuster_email": inputs["adjuster_email"],
+            "user_full_name": inputs["user_full_name"],
+            "email_address": inputs["email_address"],
+            "user_phone_no": inputs["user_phone_no"]
         }
     chain = RunnableLambda(format_inputs) | prompt_template | llm | StrOutputParser()
     return chain
@@ -203,10 +218,10 @@ def get_history_text(history_list, max_tokens=2048):
         f"User: {msg['human']}\nBenji: {msg['ai']}" for msg in trimmed_history
     ])
 
-def run_benji_chat(insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, user_question, chat_history_list=None, local_folder_name="custom_local_knowledge", local_pdf_path_or_folder="upload/"):
+def run_benji_chat(insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, user_full_name, email_address, user_phone_no, user_question, chat_history_list=None, local_folder_name="custom_local_knowledge", local_pdf_path_or_folder="upload/"):
     if chat_history_list is None:
         chat_history_list = []
-    chain = chaining(insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, local_knowledge=local_pdf_path_or_folder, local_folder_name=local_folder_name)
+    chain = chaining(insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, user_full_name, email_address, user_phone_no, local_knowledge=local_pdf_path_or_folder, local_folder_name=local_folder_name)
     inputs = {
         "insurance_company": insurance_company,
         "policy_number": policy_number,
@@ -215,6 +230,9 @@ def run_benji_chat(insurance_company, policy_number, policy_report_number, adjus
         "adjuster_phone": adjuster_phone,
         "claim_number": claim_number,
         "adjuster_email": adjuster_email,
+        "user_full_name": user_full_name,
+        "email_address": email_address,
+        "user_phone_no": user_phone_no,
         "question": user_question,
         "chat_history": chat_history_list
     }
@@ -227,14 +245,14 @@ def run_benji_chat(insurance_company, policy_number, policy_report_number, adjus
 
 # Example usage for local testing only
 if __name__ == "__main__":
-    def run_benji_chat(insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, user_question, chat_history_list=None, local_folder_name="custom_local_knowledge", local_pdf_path_or_folder="upload/"):
+    def run_benji_chat(insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, user_full_name, email_address, user_phone_no, user_question, chat_history_list=None, local_folder_name="custom_local_knowledge", local_pdf_path_or_folder="upload/"):
         if chat_history_list is None:
             chat_history_list = []
         def get_history_text(history_list):
             return "\n".join([
                 f"User: {msg['human']}\nBenji: {msg['ai']}" for msg in history_list
             ])
-        chain = chaining(insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, local_knowledge=local_pdf_path_or_folder, local_folder_name=local_folder_name)
+        chain = chaining(insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, user_full_name, email_address, user_phone_no, local_knowledge=local_pdf_path_or_folder, local_folder_name=local_folder_name)
         inputs = {
             "insurance_company": insurance_company,
             "policy_number": policy_number,
@@ -243,6 +261,9 @@ if __name__ == "__main__":
             "adjuster_phone": adjuster_phone,
             "claim_number": claim_number,
             "adjuster_email": adjuster_email,
+            "user_full_name": user_full_name,
+            "email_address": email_address,
+            "user_phone_no": user_phone_no,
             "question": user_question,
             "chat_history": chat_history_list
         }
@@ -261,6 +282,9 @@ if __name__ == "__main__":
     adjuster_phone = "555-123-4567"
     claim_number = "CLM987654"
     adjuster_email = "jane.smith@acme.com"
+    user_full_name = "John Doe"
+    email_address = "john.doe@email.com"
+    user_phone_no = "555-987-6543"
     local_folder_name = "local_knowledge"
     local_pdf_path = "upload/policy.pdf"  # Change this to your specific PDF path
     chat_history_list = []
@@ -272,6 +296,6 @@ if __name__ == "__main__":
             print("Goodbye!")
             break
         response, chat_history_list = run_benji_chat(
-            insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, user_question, chat_history_list, local_folder_name, local_pdf_path
+            insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, user_full_name, email_address, user_phone_no, user_question, chat_history_list, local_folder_name, local_pdf_path
         )
         print(f"Benji: {response}\n")
