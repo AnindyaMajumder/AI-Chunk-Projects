@@ -43,6 +43,7 @@ def embed_product_descriptions(products):
     index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(embeddings)
     # Save index and embeddings
+    os.makedirs(os.path.dirname(EMBEDDING_PATH), exist_ok=True)
     faiss.write_index(index, EMBEDDING_PATH)
     with open(PICKLE_PATH, "wb") as f:
         pickle.dump(embeddings, f)
