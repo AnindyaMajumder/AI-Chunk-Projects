@@ -72,11 +72,13 @@ def chunk_docs(documents):
 def build_or_load_vectorstore(documents, index_path="index/faiss_store"):
     embeddings = OpenAIEmbeddings(api_key=os.getenv("OPENAI_API_KEY"), model="text-embedding-3-small")
     # embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")  
-    
+
     if os.path.exists(index_path):
         return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
 
     chunks = chunk_docs(documents)
+    if not chunks:
+        return None
     vectorstore = FAISS.from_documents(chunks, embeddings)
     vectorstore.save_local(index_path)
     return vectorstore
@@ -157,13 +159,22 @@ def chaining(insurance_company: str, policy_number: str, policy_report_number: s
     llm = model_init()
     prompt_template = prompt(insurance_company, policy_number, policy_report_number, adjuster_name, adjuster_phone, claim_number, adjuster_email, user_full_name, email_address, user_phone_no)
     def format_inputs(inputs):
-        local_docs = local_vectorstore.as_retriever(search_kwargs={"k": 7}).invoke(inputs["question"])
+        # If local_vectorstore is None, skip local context
+        if local_vectorstore is not None:
+            local_docs = local_vectorstore.as_retriever(search_kwargs={"k": 7}).invoke(inputs["question"])
+            local_context = "\n\n".join([doc.page_content for doc in local_docs]) if local_docs else ""
+        else:
+            local_context = ""
         global_docs = global_vectorstore.as_retriever(search_kwargs={"k": 4}).invoke(inputs["question"])
-        local_context = "\n\n".join([doc.page_content for doc in local_docs])
         global_context = "\n\n".join([doc.page_content for doc in global_docs])
-        combined_context = (
-            f"[Local knowledge: {local_folder_name}]\n" + local_context + "\n\n[Global knowledge]\n" + global_context
-        )
+        if local_context.strip():
+            combined_context = (
+                f"[Local knowledge: {local_folder_name}]\n" + local_context + "\n\n[Global knowledge]\n" + global_context
+            )
+        else:
+            combined_context = (
+                f"[Local knowledge: {local_folder_name}]\n(No local context found. Only global context is available.)\n\n[Global knowledge]\n" + global_context
+            )
         return {
             "context": combined_context,
             "chat_history": inputs.get("chat_history", ""),
