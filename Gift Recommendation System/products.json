@@ -1,0 +1,716 @@
+[
+    {
+        "name": "Personalized Tumbler + Plant Set",
+        "description": "Thoughtful and practical with a custom tumbler and plant.",
+        "image": "https://cdn.shopify.com/s/files/1/0946/1625/6825/files/for.png?v=1750446667",
+        "price": "75.00",
+        "url": "https://farawaytogether.com/products/tumbler-30oz-plant"
+    },
+    {
+        "name": "Personalized Plant Label Gift Set",
+        "description": "Customized planter stakes for a personal touch.",
+        "image": "https://cdn.shopify.com/s/files/1/0946/1625/6825/files/Untitled_design_-_2025-06-24T114938.168.png?v=1750956200",
+        "price": "5.00",
+        "url": "https://farawaytogether.com/products/personalized-plant"
+    },
+    {
+        "name": "Personalized 30 oz. Stanley Tumbler",
+        "description": "Custom engraving adds a personal touch, making it a thoughtful gift.",
+        "image": "https://cdn.shopify.com/s/files/1/0946/1625/6825/files/Untitled_design_-_2025-06-19T140337.665.png?v=1750368378",
+        "price": "70.00",
+        "url": "https://farawaytogether.com/products/tumbler-30oz"
+    },
+    {
+        "name": "Personalized 14 oz. Stanley Tumbler",
+        "description": "Great size for kids with a custom engraved name.",
+        "image": "https://cdn.shopify.com/s/files/1/0946/1625/6825/files/ChatGPTImageJun9_2025_01_42_09PM.png?v=1750307444",
+        "price": "14.50",
+        "url": "https://farawaytogether.com/products/faraway-families-childrens-picture-book-english-version-test"
+    },
+    {
+        "name": "Wireless Bluetooth Headphones",
+        "description": "High-quality wireless headphones with noise cancellation.",
+        "image": "https://example.com/images/wireless-headphones.jpg",
+        "price": "129.99",
+        "url": "https://example.com/products/wireless-headphones"
+    },
+    {
+        "name": "Smart Fitness Watch",
+        "description": "Track your fitness goals with this stylish smartwatch.",
+        "image": "https://example.com/images/fitness-watch.jpg",
+        "price": "199.99",
+        "url": "https://example.com/products/fitness-watch"
+    },
+    {
+        "name": "Aromatherapy Essential Oil Set",
+        "description": "Relaxing essential oils for stress relief and wellness.",
+        "image": "https://example.com/images/essential-oils.jpg",
+        "price": "35.00",
+        "url": "https://example.com/products/essential-oil-set"
+    },
+    {
+        "name": "Vintage Leather Journal",
+        "description": "Handcrafted leather journal perfect for writing and sketching.",
+        "image": "https://example.com/images/leather-journal.jpg",
+        "price": "45.00",
+        "url": "https://example.com/products/leather-journal"
+    },
+    {
+        "name": "Gourmet Coffee Bean Set",
+        "description": "Premium coffee beans from around the world.",
+        "image": "https://example.com/images/coffee-beans.jpg",
+        "price": "89.99",
+        "url": "https://example.com/products/coffee-bean-set"
+    },
+    {
+        "name": "Succulent Garden Kit",
+        "description": "Everything needed to grow beautiful succulents at home.",
+        "image": "https://example.com/images/succulent-kit.jpg",
+        "price": "28.50",
+        "url": "https://example.com/products/succulent-garden-kit"
+    },
+    {
+        "name": "Portable Phone Charger",
+        "description": "High-capacity power bank for all your devices.",
+        "image": "https://example.com/images/phone-charger.jpg",
+        "price": "39.99",
+        "url": "https://example.com/products/portable-charger"
+    },
+    {
+        "name": "Cozy Weighted Blanket",
+        "description": "Soft weighted blanket for better sleep and relaxation.",
+        "image": "https://example.com/images/weighted-blanket.jpg",
+        "price": "79.99",
+        "url": "https://example.com/products/weighted-blanket"
+    },
+    {
+        "name": "Handmade Ceramic Mug Set",
+        "description": "Beautiful handcrafted ceramic mugs for coffee lovers.",
+        "image": "https://example.com/images/ceramic-mugs.jpg",
+        "price": "52.00",
+        "url": "https://example.com/products/ceramic-mug-set"
+    },
+    {
+        "name": "Bluetooth Speaker",
+        "description": "Portable wireless speaker with excellent sound quality.",
+        "image": "https://example.com/images/bluetooth-speaker.jpg",
+        "price": "65.99",
+        "url": "https://example.com/products/bluetooth-speaker"
+    },
+    {
+        "name": "Yoga Mat with Carrying Strap",
+        "description": "Non-slip yoga mat perfect for all fitness levels.",
+        "image": "https://example.com/images/yoga-mat.jpg",
+        "price": "34.99",
+        "url": "https://example.com/products/yoga-mat"
+    },
+    {
+        "name": "Personalized Photo Frame",
+        "description": "Custom engraved photo frame for cherished memories.",
+        "image": "https://example.com/images/photo-frame.jpg",
+        "price": "29.99",
+        "url": "https://example.com/products/photo-frame"
+    },
+    {
+        "name": "Artisan Chocolate Gift Box",
+        "description": "Luxury handcrafted chocolates in elegant packaging.",
+        "image": "https://example.com/images/chocolate-box.jpg",
+        "price": "68.00",
+        "url": "https://example.com/products/chocolate-gift-box"
+    },
+    {
+        "name": "Smart Home LED Light Strips",
+        "description": "Color-changing LED strips controlled by smartphone app.",
+        "image": "https://example.com/images/led-strips.jpg",
+        "price": "45.99",
+        "url": "https://example.com/products/led-light-strips"
+    },
+    {
+        "name": "Organic Tea Sampler",
+        "description": "Collection of premium organic teas from around the world.",
+        "image": "https://example.com/images/tea-sampler.jpg",
+        "price": "42.50",
+        "url": "https://example.com/products/tea-sampler"
+    },
+    {
+        "name": "Travel Backpack",
+        "description": "Durable and spacious backpack perfect for adventures.",
+        "image": "https://example.com/images/travel-backpack.jpg",
+        "price": "89.99",
+        "url": "https://example.com/products/travel-backpack"
+    },
+    {
+        "name": "Desk Plant Terrarium",
+        "description": "Mini terrarium to brighten up any workspace.",
+        "image": "https://example.com/images/desk-terrarium.jpg",
+        "price": "32.00",
+        "url": "https://example.com/products/desk-terrarium"
+    },
+    {
+        "name": "Wireless Charging Pad",
+        "description": "Fast wireless charging for smartphones and earbuds.",
+        "image": "https://example.com/images/wireless-charger.jpg",
+        "price": "25.99",
+        "url": "https://example.com/products/wireless-charging-pad"
+    },
+    {
+        "name": "Bamboo Cutting Board Set",
+        "description": "Eco-friendly bamboo cutting boards in multiple sizes.",
+        "image": "https://example.com/images/bamboo-boards.jpg",
+        "price": "49.99",
+        "url": "https://example.com/products/bamboo-cutting-boards"
+    },
+    {
+        "name": "Scented Candle Collection",
+        "description": "Set of natural soy candles with relaxing fragrances.",
+        "image": "https://example.com/images/candle-collection.jpg",
+        "price": "55.00",
+        "url": "https://example.com/products/scented-candles"
+    },
+    {
+        "name": "Gaming Mouse Pad",
+        "description": "Large gaming mouse pad with smooth surface.",
+        "image": "https://example.com/images/gaming-mousepad.jpg",
+        "price": "19.99",
+        "url": "https://example.com/products/gaming-mouse-pad"
+    },
+    {
+        "name": "Stainless Steel Water Bottle",
+        "description": "Insulated water bottle that keeps drinks cold for 24 hours.",
+        "image": "https://example.com/images/water-bottle.jpg",
+        "price": "38.99",
+        "url": "https://example.com/products/steel-water-bottle"
+    },
+    {
+        "name": "Cookbook for Beginners",
+        "description": "Easy recipes and cooking tips for new chefs.",
+        "image": "https://example.com/images/cookbook.jpg",
+        "price": "24.99",
+        "url": "https://example.com/products/beginner-cookbook"
+    },
+    {
+        "name": "Fuzzy Slippers",
+        "description": "Ultra-soft and comfortable slippers for home relaxation.",
+        "image": "https://example.com/images/fuzzy-slippers.jpg",
+        "price": "22.50",
+        "url": "https://example.com/products/fuzzy-slippers"
+    },
+    {
+        "name": "Desktop Organizer",
+        "description": "Wooden desktop organizer to keep workspace tidy.",
+        "image": "https://example.com/images/desk-organizer.jpg",
+        "price": "41.99",
+        "url": "https://example.com/products/desktop-organizer"
+    },
+    {
+        "name": "Portable Bluetooth Keyboard",
+        "description": "Compact wireless keyboard for tablets and phones.",
+        "image": "https://example.com/images/bluetooth-keyboard.jpg",
+        "price": "59.99",
+        "url": "https://example.com/products/bluetooth-keyboard"
+    },
+    {
+        "name": "Herb Garden Starter Kit",
+        "description": "Everything needed to grow fresh herbs indoors.",
+        "image": "https://example.com/images/herb-garden.jpg",
+        "price": "36.00",
+        "url": "https://example.com/products/herb-garden-kit"
+    },
+    {
+        "name": "Memory Foam Pillow",
+        "description": "Ergonomic memory foam pillow for better sleep.",
+        "image": "https://example.com/images/memory-pillow.jpg",
+        "price": "47.99",
+        "url": "https://example.com/products/memory-foam-pillow"
+    },
+    {
+        "name": "Watercolor Paint Set",
+        "description": "Professional watercolor paints for artists and hobbyists.",
+        "image": "https://example.com/images/watercolor-set.jpg",
+        "price": "73.50",
+        "url": "https://example.com/products/watercolor-paint-set"
+    },
+    {
+        "name": "Phone Stand Holder",
+        "description": "Adjustable phone stand for video calls and viewing.",
+        "image": "https://example.com/images/phone-stand.jpg",
+        "price": "16.99",
+        "url": "https://example.com/products/phone-stand"
+    },
+    {
+        "name": "Gourmet Spice Set",
+        "description": "Collection of exotic spices from around the world.",
+        "image": "https://example.com/images/spice-set.jpg",
+        "price": "58.00",
+        "url": "https://example.com/products/gourmet-spice-set"
+    },
+    {
+        "name": "Soft Throw Blanket",
+        "description": "Luxuriously soft throw blanket for couch and bed.",
+        "image": "https://example.com/images/throw-blanket.jpg",
+        "price": "44.99",
+        "url": "https://example.com/products/soft-throw-blanket"
+    },
+    {
+        "name": "USB-C Hub",
+        "description": "Multi-port USB-C hub for laptops and tablets.",
+        "image": "https://example.com/images/usb-hub.jpg",
+        "price": "67.99",
+        "url": "https://example.com/products/usb-c-hub"
+    },
+    {
+        "name": "Puzzle 1000 Pieces",
+        "description": "Challenging jigsaw puzzle with beautiful artwork.",
+        "image": "https://example.com/images/jigsaw-puzzle.jpg",
+        "price": "18.99",
+        "url": "https://example.com/products/1000-piece-puzzle"
+    },
+    {
+        "name": "Insulated Lunch Box",
+        "description": "Keeps food fresh and temperature controlled all day.",
+        "image": "https://example.com/images/lunch-box.jpg",
+        "price": "31.50",
+        "url": "https://example.com/products/insulated-lunch-box"
+    },
+    {
+        "name": "Bluetooth Earbuds",
+        "description": "True wireless earbuds with crystal clear sound quality.",
+        "image": "https://example.com/images/bluetooth-earbuds.jpg",
+        "price": "89.99",
+        "url": "https://example.com/products/bluetooth-earbuds"
+    },
+    {
+        "name": "Leather Wallet",
+        "description": "Handcrafted genuine leather wallet with RFID protection.",
+        "image": "https://example.com/images/leather-wallet.jpg",
+        "price": "62.00",
+        "url": "https://example.com/products/leather-wallet"
+    },
+    {
+        "name": "Desktop Humidifier",
+        "description": "Ultrasonic humidifier for better air quality.",
+        "image": "https://example.com/images/humidifier.jpg",
+        "price": "43.99",
+        "url": "https://example.com/products/desktop-humidifier"
+    },
+    {
+        "name": "Board Game Collection",
+        "description": "Family-friendly board games for hours of entertainment.",
+        "image": "https://example.com/images/board-games.jpg",
+        "price": "95.00",
+        "url": "https://example.com/products/board-game-collection"
+    },
+    {
+        "name": "Silk Pillowcase",
+        "description": "Luxury silk pillowcase for hair and skin care.",
+        "image": "https://example.com/images/silk-pillowcase.jpg",
+        "price": "54.99",
+        "url": "https://example.com/products/silk-pillowcase"
+    },
+    {
+        "name": "Smart Digital Scale",
+        "description": "Bluetooth-enabled scale with body composition analysis.",
+        "image": "https://example.com/images/smart-scale.jpg",
+        "price": "78.99",
+        "url": "https://example.com/products/smart-digital-scale"
+    },
+    {
+        "name": "Coffee Grinder",
+        "description": "Electric burr grinder for perfectly ground coffee beans.",
+        "image": "https://example.com/images/coffee-grinder.jpg",
+        "price": "124.99",
+        "url": "https://example.com/products/coffee-grinder"
+    },
+    {
+        "name": "Car Phone Mount",
+        "description": "Secure phone mount for hands-free driving.",
+        "image": "https://example.com/images/car-mount.jpg",
+        "price": "21.99",
+        "url": "https://example.com/products/car-phone-mount"
+    },
+    {
+        "name": "Resistance Band Set",
+        "description": "Complete resistance band workout kit for home fitness.",
+        "image": "https://example.com/images/resistance-bands.jpg",
+        "price": "29.99",
+        "url": "https://example.com/products/resistance-band-set"
+    },
+    {
+        "name": "Portable Laptop Stand",
+        "description": "Adjustable laptop stand for ergonomic computing.",
+        "image": "https://example.com/images/laptop-stand.jpg",
+        "price": "56.50",
+        "url": "https://example.com/products/portable-laptop-stand"
+    },
+    {
+        "name": "Night Light Projector",
+        "description": "Star and galaxy projector for ambient lighting.",
+        "image": "https://example.com/images/night-projector.jpg",
+        "price": "37.99",
+        "url": "https://example.com/products/night-light-projector"
+    },
+    {
+        "name": "Skincare Gift Set",
+        "description": "Natural skincare products for daily beauty routine.",
+        "image": "https://example.com/images/skincare-set.jpg",
+        "price": "86.00",
+        "url": "https://example.com/products/skincare-gift-set"
+    },
+    {
+        "name": "Magnetic Wireless Charger",
+        "description": "MagSafe compatible wireless charger for iPhone.",
+        "image": "https://example.com/images/magsafe-charger.jpg",
+        "price": "42.99",
+        "url": "https://example.com/products/magnetic-wireless-charger"
+    },
+    {
+        "name": "Adjustable Dumbbells",
+        "description": "Space-saving adjustable dumbbells for home workouts.",
+        "image": "https://example.com/images/adjustable-dumbbells.jpg",
+        "price": "159.99",
+        "url": "https://example.com/products/adjustable-dumbbells"
+    },
+    {
+        "name": "Reading Light Clip",
+        "description": "LED reading light that clips onto books and tablets.",
+        "image": "https://example.com/images/reading-light.jpg",
+        "price": "14.99",
+        "url": "https://example.com/products/reading-light-clip"
+    },
+    {
+        "name": "Jewelry Organizer Box",
+        "description": "Elegant jewelry box with multiple compartments.",
+        "image": "https://example.com/images/jewelry-box.jpg",
+        "price": "71.50",
+        "url": "https://example.com/products/jewelry-organizer"
+    },
+    {
+        "name": "Smart Plug Set",
+        "description": "WiFi smart plugs for home automation and control.",
+        "image": "https://example.com/images/smart-plugs.jpg",
+        "price": "33.99",
+        "url": "https://example.com/products/smart-plug-set"
+    },
+    {
+        "name": "Bath Bomb Gift Set",
+        "description": "Luxury bath bombs with natural essential oils.",
+        "image": "https://example.com/images/bath-bombs.jpg",
+        "price": "48.00",
+        "url": "https://example.com/products/bath-bomb-set"
+    },
+    {
+        "name": "Wireless Mouse",
+        "description": "Ergonomic wireless mouse with precision tracking.",
+        "image": "https://example.com/images/wireless-mouse.jpg",
+        "price": "35.99",
+        "url": "https://example.com/products/wireless-mouse"
+    },
+    {
+        "name": "Cookbook Holder Stand",
+        "description": "Bamboo cookbook stand for hands-free cooking.",
+        "image": "https://example.com/images/cookbook-stand.jpg",
+        "price": "26.50",
+        "url": "https://example.com/products/cookbook-holder"
+    },
+    {
+        "name": "Facial Cleansing Brush",
+        "description": "Electric facial brush for deep pore cleansing.",
+        "image": "https://example.com/images/facial-brush.jpg",
+        "price": "63.99",
+        "url": "https://example.com/products/facial-cleansing-brush"
+    },
+    {
+        "name": "Bluetooth Shower Speaker",
+        "description": "Waterproof speaker perfect for shower listening.",
+        "image": "https://example.com/images/shower-speaker.jpg",
+        "price": "28.99",
+        "url": "https://example.com/products/bluetooth-shower-speaker"
+    },
+    {
+        "name": "Air Purifier",
+        "description": "HEPA air purifier for cleaner indoor air quality.",
+        "image": "https://example.com/images/air-purifier.jpg",
+        "price": "149.99",
+        "url": "https://example.com/products/air-purifier"
+    },
+    {
+        "name": "Portable Blender",
+        "description": "USB rechargeable blender for smoothies on the go.",
+        "image": "https://example.com/images/portable-blender.jpg",
+        "price": "41.99",
+        "url": "https://example.com/products/portable-blender"
+    },
+    {
+        "name": "Meditation Cushion",
+        "description": "Comfortable cushion for meditation and yoga practice.",
+        "image": "https://example.com/images/meditation-cushion.jpg",
+        "price": "52.50",
+        "url": "https://example.com/products/meditation-cushion"
+    },
+    {
+        "name": "Smart Doorbell Camera",
+        "description": "WiFi doorbell with HD video and motion detection.",
+        "image": "https://example.com/images/smart-doorbell.jpg",
+        "price": "179.99",
+        "url": "https://example.com/products/smart-doorbell-camera"
+    },
+    {
+        "name": "Stainless Steel Straws",
+        "description": "Reusable metal straws with cleaning brush included.",
+        "image": "https://example.com/images/steel-straws.jpg",
+        "price": "12.99",
+        "url": "https://example.com/products/stainless-steel-straws"
+    },
+    {
+        "name": "Wall Art Print Set",
+        "description": "Modern abstract art prints for home decoration.",
+        "image": "https://example.com/images/wall-art.jpg",
+        "price": "64.00",
+        "url": "https://example.com/products/wall-art-print-set"
+    },
+    {
+        "name": "Electric Kettle",
+        "description": "Fast-boiling electric kettle with temperature control.",
+        "image": "https://example.com/images/electric-kettle.jpg",
+        "price": "87.99",
+        "url": "https://example.com/products/electric-kettle"
+    },
+    {
+        "name": "Travel Jewelry Case",
+        "description": "Compact jewelry organizer perfect for travel.",
+        "image": "https://example.com/images/travel-jewelry-case.jpg",
+        "price": "39.50",
+        "url": "https://example.com/products/travel-jewelry-case"
+    },
+    {
+        "name": "Keyboard Wrist Rest",
+        "description": "Ergonomic wrist support for comfortable typing.",
+        "image": "https://example.com/images/wrist-rest.jpg",
+        "price": "23.99",
+        "url": "https://example.com/products/keyboard-wrist-rest"
+    },
+    {
+        "name": "Digital Photo Frame",
+        "description": "WiFi photo frame for displaying digital memories.",
+        "image": "https://example.com/images/digital-frame.jpg",
+        "price": "119.99",
+        "url": "https://example.com/products/digital-photo-frame"
+    },
+    {
+        "name": "Cooling Gel Pillow",
+        "description": "Temperature-regulating pillow for hot sleepers.",
+        "image": "https://example.com/images/cooling-pillow.jpg",
+        "price": "59.99",
+        "url": "https://example.com/products/cooling-gel-pillow"
+    },
+    {
+        "name": "Wireless Charging Station",
+        "description": "Multi-device charging station for phones and watches.",
+        "image": "https://example.com/images/charging-station.jpg",
+        "price": "84.99",
+        "url": "https://example.com/products/wireless-charging-station"
+    },
+    {
+        "name": "Bamboo Bluetooth Speaker",
+        "description": "Eco-friendly wooden speaker with excellent acoustics.",
+        "image": "https://example.com/images/bamboo-speaker.jpg",
+        "price": "72.50",
+        "url": "https://example.com/products/bamboo-bluetooth-speaker"
+    },
+    {
+        "name": "Foot Massager",
+        "description": "Electric foot massager for relaxation and pain relief.",
+        "image": "https://example.com/images/foot-massager.jpg",
+        "price": "134.99",
+        "url": "https://example.com/products/foot-massager"
+    },
+    {
+        "name": "Smart Light Bulbs",
+        "description": "Color-changing LED bulbs controlled by smartphone.",
+        "image": "https://example.com/images/smart-bulbs.jpg",
+        "price": "46.99",
+        "url": "https://example.com/products/smart-light-bulbs"
+    },
+    {
+        "name": "Portable Projector",
+        "description": "Mini projector for movies and presentations anywhere.",
+        "image": "https://example.com/images/portable-projector.jpg",
+        "price": "199.99",
+        "url": "https://example.com/products/portable-projector"
+    },
+    {
+        "name": "Car Seat Organizer",
+        "description": "Backseat organizer with multiple pockets and tablet holder.",
+        "image": "https://example.com/images/seat-organizer.jpg",
+        "price": "27.99",
+        "url": "https://example.com/products/car-seat-organizer"
+    },
+    {
+        "name": "Handmade Soap Set",
+        "description": "Natural handmade soaps with organic ingredients.",
+        "image": "https://example.com/images/soap-set.jpg",
+        "price": "34.50",
+        "url": "https://example.com/products/handmade-soap-set"
+    },
+    {
+        "name": "Blue Light Glasses",
+        "description": "Computer glasses to reduce eye strain and improve sleep.",
+        "image": "https://example.com/images/blue-light-glasses.jpg",
+        "price": "49.99",
+        "url": "https://example.com/products/blue-light-glasses"
+    },
+    {
+        "name": "Heated Blanket",
+        "description": "Electric heated blanket with multiple temperature settings.",
+        "image": "https://example.com/images/heated-blanket.jpg",
+        "price": "91.99",
+        "url": "https://example.com/products/heated-blanket"
+    },
+    {
+        "name": "Wireless Headphone Stand",
+        "description": "Elegant stand for storing and displaying headphones.",
+        "image": "https://example.com/images/headphone-stand.jpg",
+        "price": "32.99",
+        "url": "https://example.com/products/wireless-headphone-stand"
+    },
+    {
+        "name": "Smart Thermostat",
+        "description": "WiFi thermostat for energy-efficient home temperature control.",
+        "image": "https://example.com/images/smart-thermostat.jpg",
+        "price": "249.99",
+        "url": "https://example.com/products/smart-thermostat"
+    },
+    {
+        "name": "Bamboo Toothbrush Set",
+        "description": "Eco-friendly bamboo toothbrushes for sustainable oral care.",
+        "image": "https://example.com/images/bamboo-toothbrush.jpg",
+        "price": "15.99",
+        "url": "https://example.com/products/bamboo-toothbrush-set"
+    },
+    {
+        "name": "Wireless Gaming Controller",
+        "description": "Bluetooth controller compatible with multiple gaming platforms.",
+        "image": "https://example.com/images/gaming-controller.jpg",
+        "price": "69.99",
+        "url": "https://example.com/products/wireless-gaming-controller"
+    },
+    {
+        "name": "Instant Camera",
+        "description": "Retro instant camera for capturing and printing memories.",
+        "image": "https://example.com/images/instant-camera.jpg",
+        "price": "139.99",
+        "url": "https://example.com/products/instant-camera"
+    },
+    {
+        "name": "Wine Aerator",
+        "description": "Premium wine aerator for enhanced flavor and aroma.",
+        "image": "https://example.com/images/wine-aerator.jpg",
+        "price": "38.50",
+        "url": "https://example.com/products/wine-aerator"
+    },
+    {
+        "name": "Smart Watch Band",
+        "description": "Stylish replacement band for smartwatches.",
+        "image": "https://example.com/images/watch-band.jpg",
+        "price": "24.99",
+        "url": "https://example.com/products/smart-watch-band"
+    },
+    {
+        "name": "Portable Hard Drive",
+        "description": "1TB external hard drive for backup and storage.",
+        "image": "https://example.com/images/hard-drive.jpg",
+        "price": "89.99",
+        "url": "https://example.com/products/portable-hard-drive"
+    },
+    {
+        "name": "Cocktail Shaker Set",
+        "description": "Professional bartender kit for crafting perfect cocktails.",
+        "image": "https://example.com/images/cocktail-shaker.jpg",
+        "price": "67.50",
+        "url": "https://example.com/products/cocktail-shaker-set"
+    },
+    {
+        "name": "LED Desk Lamp",
+        "description": "Adjustable LED desk lamp with USB charging port.",
+        "image": "https://example.com/images/desk-lamp.jpg",
+        "price": "53.99",
+        "url": "https://example.com/products/led-desk-lamp"
+    },
+    {
+        "name": "Wireless Security Camera",
+        "description": "HD security camera with night vision and mobile alerts.",
+        "image": "https://example.com/images/security-camera.jpg",
+        "price": "129.99",
+        "url": "https://example.com/products/wireless-security-camera"
+    },
+    {
+        "name": "Reusable Water Bottle with Infuser",
+        "description": "Glass water bottle with fruit infuser for flavored water.",
+        "image": "https://example.com/images/infuser-bottle.jpg",
+        "price": "31.99",
+        "url": "https://example.com/products/infuser-water-bottle"
+    },
+    {
+        "name": "Magnetic Cable Organizer",
+        "description": "Magnetic strips for organizing cables and small metal items.",
+        "image": "https://example.com/images/cable-organizer.jpg",
+        "price": "18.50",
+        "url": "https://example.com/products/magnetic-cable-organizer"
+    },
+    {
+        "name": "Smart Indoor Garden",
+        "description": "Automated hydroponic system for growing herbs and vegetables.",
+        "image": "https://example.com/images/smart-garden.jpg",
+        "price": "189.99",
+        "url": "https://example.com/products/smart-indoor-garden"
+    },
+    {
+        "name": "Massage Gun",
+        "description": "Percussion massage device for muscle recovery and pain relief.",
+        "image": "https://example.com/images/massage-gun.jpg",
+        "price": "149.99",
+        "url": "https://example.com/products/massage-gun"
+    },
+    {
+        "name": "Silk Sleep Mask",
+        "description": "Luxurious silk eye mask for better sleep quality.",
+        "image": "https://example.com/images/silk-sleep-mask.jpg",
+        "price": "22.99",
+        "url": "https://example.com/products/silk-sleep-mask"
+    },
+    {
+        "name": "Smart Mug Warmer",
+        "description": "Temperature-controlled mug warmer for hot beverages.",
+        "image": "https://example.com/images/mug-warmer.jpg",
+        "price": "79.99",
+        "url": "https://example.com/products/smart-mug-warmer"
+    },
+    {
+        "name": "Bamboo Cutting Board with Compartments",
+        "description": "Multi-function cutting board with built-in storage compartments.",
+        "image": "https://example.com/images/bamboo-cutting-board.jpg",
+        "price": "45.50",
+        "url": "https://example.com/products/bamboo-cutting-board-compartments"
+    },
+    {
+        "name": "Voice Recording Pen",
+        "description": "Digital voice recorder for meetings and lectures.",
+        "image": "https://example.com/images/voice-recorder.jpg",
+        "price": "58.99",
+        "url": "https://example.com/products/voice-recording-pen"
+    },
+    {
+        "name": "Smart Bike Lock",
+        "description": "Bluetooth bike lock with smartphone app control.",
+        "image": "https://example.com/images/smart-bike-lock.jpg",
+        "price": "99.99",
+        "url": "https://example.com/products/smart-bike-lock"
+    },
+    {
+        "name": "Aromatic Rice Cooker",
+        "description": "Multi-function rice cooker with steaming and slow cooking features.",
+        "image": "https://example.com/images/rice-cooker.jpg",
+        "price": "109.99",
+        "url": "https://example.com/products/aromatic-rice-cooker"
+    }
+]

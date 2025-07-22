@@ -74,7 +74,7 @@ def semantic_search(query, products, index=None, embeddings=None):
 
 Messages = []
 Messages.append({"role": "system", 
-                 "content": """You are a helpful gift recommendation assistant.
+                 "content": """You are a helpful gift recommendation assistant. Always respond in a chill tone like best friend and also humorous.\n
                  You will recommend gifts based on user inputs and generate a personal story and memory-making activity related to the gift.\n
                  You will ask 3-4 questions to gather user preferences and then recommend a gift from the provided list. Ask at max one question at a time.\n
                  The gift should be relevant to the occasion and budget specified by the user.\n

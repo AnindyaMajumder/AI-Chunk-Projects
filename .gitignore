@@ -209,4 +209,3 @@ index/
 .venv/
 *.pkl
 *.faiss
-*.json
