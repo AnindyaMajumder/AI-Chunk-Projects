@@ -1,7 +1,7 @@
 import openai
 import json
 from dotenv import load_dotenv
-import os 
+import os
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import faiss
@@ -34,12 +34,11 @@ def embed_product_descriptions(products):
             embeddings = pickle.load(f)
         return embeddings, index
     # If not, create embeddings
-    response = openai.Embedding.create(
-        api_key=openai.api_key,
+    response = openai.embeddings.create(
         model="text-embedding-3-small",
         input=descriptions
     )
-    embeddings = np.array([d["embedding"] for d in response["data"]], dtype="float32")
+    embeddings = np.array([item.embedding for item in response.data], dtype="float32")
     # Create FAISS index
     index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(embeddings)
@@ -51,14 +50,18 @@ def embed_product_descriptions(products):
     return embeddings, index
 
 # === Semantic Search for products ===
-def semantic_search(query, products):
-    query_embedding = openai.Embedding.create(
-        api_key=openai.api_key,
+def semantic_search(query, products, index=None, embeddings=None):
+    # Always generate query embedding
+    response = openai.embeddings.create(
         model="text-embedding-3-small",
-        input=query
-    )["data"][0]["embedding"]
-    
-    # Calculate similarity scores
+        input=[query]
+    )
+    query_embedding = np.array(response.data[0].embedding, dtype="float32")
+    # If index and embeddings are available, use FAISS
+    if index is not None and embeddings is not None:
+        D, I = index.search(np.array([query_embedding]).astype("float32"), k=5)
+        return [products[i] for i in I[0]]
+    # Otherwise, use cosine similarity
     scores = []
     for product in products:
         score = cosine_similarity(
@@ -66,51 +69,57 @@ def semantic_search(query, products):
             np.array(product["embedding"]).reshape(1, -1)
         )[0][0]
         scores.append((product, score))
-    
-    # Sort by score
     scores.sort(key=lambda x: x[1], reverse=True)
     return [product for product, score in scores[:5]]
 
 Messages = []
-Messages.append({
-    "role": "system", 
-    "content": """You are a helpful gift recommendation assistant. 
-                You will help users find the perfect gift based on their preferences and the product descriptions provided. 
-                You will ask 3-5 questions to understand the user's needs and preferences, and then provide personalized recommendations.
+Messages.append({"role": "system", 
+                 "content": """You are a helpful gift recommendation assistant.
+                 You will recommend gifts based on user inputs and generate a personal story and memory-making activity related to the gift.\n
+                 You will ask 3-4 questions to gather user preferences and then recommend a gift from the provided list. Ask at max one question at a time.\n
+                 The gift should be relevant to the occasion and budget specified by the user.\n
+                 At the end, you must strictly output only the query text for semantic search, with absolutely no other text, letters, or characters before it. The output must start with "Query:" and nothing else. The format is: "Query: Find a gift for [occasion] for [relationship] within [budget] and [user preferences]." Only this formatted output will be returned, with no additional explanation, greeting, or text before or after.\n
+                 It only answers questions related to gift recommendations and does not provide any other information or assistance. Suggest to contact with the specialized one. \n
                 """
-    })
+                })
 # === AI Chatbot ===
-def chat_with_ai(user_message):
-    Messages.append({"role": "user", "content": user_message})
-    # Here you would typically call your AI model with the Messages context
-    # For now, let's just echo the user message
-    ai_response = f"AI response to: {user_message}"
-    Messages.append({"role": "assistant", "content": ai_response})
-    return ai_response
+def chat_with_gpt(prompt):
+    Messages.append({"role": "user", "content": prompt})
+    response = openai.chat.completions.create(
+        model="gpt-4",
+        messages=Messages,
+        temperature=0.7
+    )
+    answer = response.choices[0].message.content
+    Messages.append({"role": "assistant", "content": answer})
+    return answer
 
-# === Get Chat History ===
-def get_chat_history():
+def chat_history(occasion, price_str, answers):
     return Messages
 
-# === Main Function ===
+# === Query Extraction and Semantic Search ===
+def handle_query_response(response, products, index, embeddings):
+    if "Query:" in response:
+        semantic_search_query = response.split("Query:", 1)[1].strip()
+        search_results = semantic_search(semantic_search_query, products, index, embeddings)
+        
+        Messages.append({"role": "assistant", "content": f"Suggested products:\n {semantic_search_query}"})
+        return search_results
+    return None
+
+# === Main Functionality ===
 if __name__ == "__main__":
     products = load_products()
-    if not products:
-        print("No products available for recommendation.")
-    else:
-        embeddings, index = embed_product_descriptions(products)
-        print("Product embeddings loaded and indexed.")
-        
-        # Example usage
-        user_query = "I am looking for a gift for my friend's birthday."
-        recommendations = semantic_search(user_query, products)
-        print("Recommended Products:", recommendations)
-        
-        # Chat with AI
-        user_message = "What gift do you recommend for a tech enthusiast?"
-        ai_response = chat_with_ai(user_message)
-        print("AI Response:", ai_response)
-        
-        # Get chat history
-        chat_history = get_chat_history()
-        print("Chat History:", chat_history)
+    embeddings, index = embed_product_descriptions(products)
+    
+    while True:
+        user_input = input("You: ")
+        if user_input.lower() == "exit":
+            break
+        response = chat_with_gpt(user_input)
+        search_results = handle_query_response(response, products, index, embeddings)
+        if search_results is not None:
+            print("Search Results:", json.dumps(search_results, indent=2))
+            break
+        else:
+            print("Assistant:", response)
