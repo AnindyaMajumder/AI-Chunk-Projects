@@ -83,6 +83,7 @@ Messages.append({"role": "system",
                  It only answers questions related to gift recommendations and does not provide any other information or assistance. Suggest to contact with the specialized one. \n
                 """
                 })
+
 # === AI Chatbot ===
 def chat_with_gpt(prompt):
     Messages.append({"role": "user", "content": prompt})
@@ -115,7 +116,7 @@ if __name__ == "__main__":
     
     while True:
         user_input = input("You: ")
-        if user_input.lower() == "exit":
+        if user_input.lower() == "exit" or user_input.lower() == "bye":
             break
         response = chat_with_gpt(user_input)
         search_results = handle_query_response(response, products, index, embeddings)
