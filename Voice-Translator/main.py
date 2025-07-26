@@ -42,14 +42,27 @@ def tts_voice(text: str):
         model_id="eleven_multilingual_v2",
         output_format="mp3_44100_128",
     )
+    
+    return audio_gen
+
+def voice_to_translator(audio_file: str, target_language: str):
+    print("Voice Translator is ready to use!")
+    
+    text = transcribe_audio(audio_file)
+    translated_text = translator(text, target_language)
+    translated_audio = tts_voice(translated_text)
+    
+    os.remove(audio_file)  # Clean up the audio file after processing
+    
     # Save audio to file
     with open("output_audio.wav", "wb") as f:
-        for chunk in audio_gen:
-            f.write(chunk)
-            
+        for chunk in translated_audio:
+            f.write(chunk) 
+
+# -------------------------------------------------------------------            
 samplerate = 16000
 channels = 1
-duration = 25 # seconds to record
+duration = 10 # seconds to record
 def record_audio(filename, duration=duration, samplerate=samplerate, channels=channels):
     print(f"Recording for {duration} seconds...")
     audio = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=channels, dtype='int16')
@@ -65,24 +78,8 @@ def record_audio(filename, duration=duration, samplerate=samplerate, channels=ch
 if __name__ == "__main__":
     target_language = input("Enter target language (e.g., French, Spanish): ")
     
-    # Step 1: Record audio
     with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmpfile:
         audio_path = tmpfile.name
     record_audio(audio_path)
 
-    # Step 2: Transcribe
-    print("Transcribing...")
-    text = transcribe_audio(audio_path)
-    print(f"Transcribed: {text}")
-
-    # Step 3: Translate
-    translated_text = translator(text, target_language)
-    print(f"Translated: {translated_text}")
-
-    # Step 4: TTS
-    print("Synthesizing speech...")
-    tts_voice(translated_text)
-    print("Audio output saved as output_audio.wav")
-
-    # Cleanup
-    os.remove(audio_path)
+    voice_to_translator(audio_path, target_language)
