@@ -1,13 +1,9 @@
-
 import sounddevice as sd
-import numpy as np
-import queue
-import threading
 import tempfile
 import os
-from tts import voice as tts_voice
-from translator import translator
-from transcribe import transcribe_audio
+from src.tts import voice as tts_voice
+from src.translator import translator
+from src.transcribe import transcribe_audio
 
 samplerate = 16000
 channels = 1

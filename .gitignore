@@ -209,3 +209,4 @@ index/
 .venv/
 *.pkl
 *.faiss
+output_audio.wav

@@ -10,5 +10,4 @@ def translator(text, target_language):
         ]
     )
     translated_text = response.choices[0].message.content.strip()
-    print(f"Translated text: {translated_text}\n")
     return translated_text
