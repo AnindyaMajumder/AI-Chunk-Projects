@@ -1,51 +1,88 @@
-from dotenv import load_dotenv
-load_dotenv()
-from tts import gen_dub
+from openai import OpenAI
+from elevenlabs.client import ElevenLabs
+import os
+import tempfile
 import sounddevice as sd
-import numpy as np
-from faster_whisper import WhisperModel
-from translator import translate
+import wave
+from dotenv import load_dotenv
 
-SAMPLE_RATE = 16000
-DURATION = 5  # seconds per chunk
+load_dotenv()
+client = OpenAI()
 
-def record_audio(duration=DURATION, sample_rate=SAMPLE_RATE):
+def transcribe_audio(file_path):
+    with open(file_path, "rb") as audio_file:
+        transcription = client.audio.transcriptions.create(
+            model="gpt-4o-transcribe", 
+            file=audio_file, 
+            response_format="text"
+        )
+    print(transcription)
+    return transcription
+
+def translator(text, target_language):
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a translation assistant. Only translate the text, do not include any additional information."},
+            {"role": "user", "content": f"Translate the following text to {target_language}: {text}"}
+        ]
+    )
+    translated_text = response.choices[0].message.content.strip()
+    print(f"Translated text: {translated_text}\n")
+    return translated_text
+
+elevenlabs = ElevenLabs(
+  api_key=os.getenv("ELEVENLABS_API_KEY"),
+)
+
+def tts_voice(text: str):
+    audio_gen = elevenlabs.text_to_speech.convert(
+        text=text,
+        voice_id="JBFqnCBsd6RMkjVDRZzb",
+        model_id="eleven_multilingual_v2",
+        output_format="mp3_44100_128",
+    )
+    # Save audio to file
+    with open("output_audio.wav", "wb") as f:
+        for chunk in audio_gen:
+            f.write(chunk)
+            
+samplerate = 16000
+channels = 1
+duration = 25 # seconds to record
+def record_audio(filename, duration=duration, samplerate=samplerate, channels=channels):
     print(f"Recording for {duration} seconds...")
-    audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype='float32')
+    audio = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=channels, dtype='int16')
     sd.wait()
-    return np.squeeze(audio)
-
-def transcribe_audio(audio, sample_rate=SAMPLE_RATE):
-    # Save to temporary WAV file
-    import tempfile, soundfile as sf
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-        sf.write(tmp.name, audio, sample_rate)
-        model = WhisperModel("base", device="cpu", compute_type="int8")
-        segments, info = model.transcribe(tmp.name)
-        text = " ".join([seg.text for seg in segments])
-    return text.strip()
-
-def live_translate(language="French"):
-    print(f"Speak into your microphone. Translating to {language}. Press Ctrl+C to exit.")
-    while True:
-        try:
-            audio = record_audio()
-            if np.max(np.abs(audio)) < 0.01:
-                print("No speech detected. Try again.")
-                continue
-            text = transcribe_audio(audio)
-            if text:
-                print("Original:", text)
-                translated = translate(text, language)
-                print(f"Translated ({language}):", translated)
-                gen_dub(translated)
-            else:
-                print("No transcription detected.")
-        except KeyboardInterrupt:
-            print("Exiting...")
-            break
-
+    # Save as WAV
+    with wave.open(filename, 'wb') as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(2)  # 16 bits
+        wf.setframerate(samplerate)
+        wf.writeframes(audio.tobytes())
+    print(f"Audio saved to {filename}")
+    
 if __name__ == "__main__":
-    import sys
-    lang = sys.argv[1] if len(sys.argv) > 1 else "French"
-    live_translate(lang)
+    target_language = input("Enter target language (e.g., French, Spanish): ")
+    
+    # Step 1: Record audio
+    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmpfile:
+        audio_path = tmpfile.name
+    record_audio(audio_path)
+
+    # Step 2: Transcribe
+    print("Transcribing...")
+    text = transcribe_audio(audio_path)
+    print(f"Transcribed: {text}")
+
+    # Step 3: Translate
+    translated_text = translator(text, target_language)
+    print(f"Translated: {translated_text}")
+
+    # Step 4: TTS
+    print("Synthesizing speech...")
+    tts_voice(translated_text)
+    print("Audio output saved as output_audio.wav")
+
+    # Cleanup
+    os.remove(audio_path)
