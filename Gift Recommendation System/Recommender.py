@@ -20,7 +20,9 @@ def load_products():
         return products
     except FileNotFoundError:
         print("Error: products.json file not found.")
-        return []
+        return []    
+    
+PRODUCT = load_products()
 
 # === Embedding ===
 def embed_product_descriptions(products):
@@ -34,7 +36,7 @@ def embed_product_descriptions(products):
             embeddings = pickle.load(f)
         return embeddings, index
     # If not, create embeddings
-    response = openai.embeddings.create(
+    response = openai.Embedding.create(
         model="text-embedding-3-small",
         input=descriptions
     )
@@ -53,7 +55,7 @@ def embed_product_descriptions(products):
 # === Semantic Search for products ===
 def semantic_search(query, products, index=None, embeddings=None):
     # Always generate query embedding
-    response = openai.embeddings.create(
+    response = openai.Embedding.create(
         model="text-embedding-3-small",
         input=[query]
     )
@@ -87,7 +89,7 @@ Messages.append({"role": "system",
 # === AI Chatbot ===
 def chat_with_gpt(prompt):
     Messages.append({"role": "user", "content": prompt})
-    response = openai.chat.completions.create(
+    response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=Messages,
         temperature=0.7
@@ -109,19 +111,53 @@ def handle_query_response(response, products, index, embeddings):
         return search_results
     return None
 
-# === Main Functionality ===
-if __name__ == "__main__":
-    products = load_products()
-    embeddings, index = embed_product_descriptions(products)
-    
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() == "exit" or user_input.lower() == "bye":
-            break
+def run(user_input, products, flag=False):
+    if flag:
+        # Delete index folder if it exists
+        index_dir = "index"
+        if os.path.exists(index_dir):
+            # Delete files in the directory first
+            for filename in os.listdir(index_dir):
+                file_path = os.path.join(index_dir, filename)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+            # Remove the directory
+            os.rmdir(index_dir)
+            print(f"Index folder '{index_dir}' deleted successfully.")
+        else:
+            print(f"Index folder '{index_dir}' does not exist.")
+            
+    if not products:
+        error_msg = "No products found."
+        print(error_msg)
+        return error_msg
+    try:
+        embeddings, index = embed_product_descriptions(products)
+    except Exception as e:
+        error_msg = f"Error generating embeddings: {e}"
+        print(error_msg)
+        return error_msg
+    try:
         response = chat_with_gpt(user_input)
         search_results = handle_query_response(response, products, index, embeddings)
         if search_results is not None:
-            print("Search Results:", json.dumps(search_results, indent=2))
-            break
+            result_json = json.dumps(search_results, indent=2)
+            print("Search Results:", result_json)
+            return result_json
         else:
             print("Assistant:", response)
+            return response
+    except Exception as e:
+        error_msg = f"Error during chat or search: {e}"
+        print(error_msg)
+        return error_msg
+
+# === Main Functionality ===
+if __name__ == "__main__":
+    print("Welcome to the Gift Recommendation Assistant! (type 'exit' or 'bye' to quit)")
+    while True:
+        user_input = input("You: ")
+        if user_input.lower() in ("exit", "bye"):
+            print("Goodbye!")
+            break
+        run(user_input, PRODUCT, flag=False)
