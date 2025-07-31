@@ -88,7 +88,8 @@ Budget: {price_str}
 Here is the list of available products:
 {json.dumps(products, indent=2)}
 
-Return a JSON object with:
+Return only a JSON object, Nothing else, not even an extra white space
+Format:
 {{
   "gifts": [
     {{
@@ -104,7 +105,7 @@ Return a JSON object with:
     res = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
+        temperature=0.2
     )
     return json.loads(res.choices[0].message["content"])
 
